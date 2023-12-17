@@ -2,27 +2,30 @@ name: Rust
 
 on:
   push:
-    branches: [ "dev" ]
+    branches: ["dev"]
   pull_request:
-    branches: [ "dev" ]
+    branches: ["dev"]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-
+  test:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Setup Rust Toolchain for GitHub CI
-      uses: actions-rust-lang/setup-rust-toolchain@v1.6.0
-  
-    - uses: actions/checkout@v3
-    
-    - name: Run clippy
-      run: cargo clippy --all-features --all-targets -- -D warnings
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+      - name: toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          components: clippy
+
+      - uses: actions/checkout@v3
+
+      - name: Run clippy
+        run: cargo clippy --all-features --all-targets -- -D warnings
+      - name: Build
+        run: cargo build --verbose
+      - name: Run tests
+        run: cargo test --verbose

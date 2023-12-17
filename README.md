@@ -87,7 +87,7 @@ A rust crate to manage, persist, encrypt configurations.
 <!-- GETTING STARTED -->
 ## Getting Started
 
-Details here: [Example](tests/tests.rs)
+Details here: [Example](example/eamples.rs)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

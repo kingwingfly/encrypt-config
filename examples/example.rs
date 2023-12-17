@@ -50,8 +50,7 @@ impl SecretSource for SecretSourceImpl {
     }
 }
 
-#[test]
-fn source_test() {
+fn config_tests() {
     let mut config = Config::new("test");
     config.add_source(NormalSource).unwrap();
     config.add_persist_source(PersistSourceImpl).unwrap();
@@ -78,4 +77,8 @@ fn source_test() {
     assert_eq!(v, Bar("Louis".to_owned()));
     std::fs::remove_file("tests/secret_test").unwrap();
     std::fs::remove_file("tests/test").unwrap();
+}
+
+fn main() {
+    config_tests();
 }

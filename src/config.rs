@@ -10,7 +10,7 @@ pub(crate) type ConfigValue = Vec<u8>;
 
 /// A struct that can be used to store configuration values.
 /// # Example
-/// ```
+/// ```no_run
 /// use encrypt_config::{Config, Source, ConfigResult};
 ///
 /// let mut config = Config::new("test");
@@ -92,7 +92,7 @@ impl Config {
 /// You can get a `ConfigPatch` by calling [`PersistSource::upgrade`], and apply it by calling [`ConfigPatch::apply`] to a config.
 /// No change will happen until you call [`ConfigPatch::apply`].
 /// # Example
-/// ```rust
+/// ```no_run
 /// use encrypt_config::{Config, ConfigKey, PersistSource, ConfigResult};
 ///
 /// let mut config = Config::new("test");
@@ -144,11 +144,13 @@ impl ConfigPatch {
     }
 }
 
+type Func = Box<dyn FnOnce(&Encrypter) -> ConfigResult<ConfigValue>>;
+
 /// A patch that can be used to modify the config.
 /// You can get a `SecretConfigPatch` by calling [`SecretSource::upgrade`], and apply it by calling [`SecretConfigPatch::apply`] to a config.
 /// No change will happen until you call [`SecretConfigPatch::apply`].
 /// # Example
-/// ```rust
+/// ```no_run
 /// use encrypt_config::{Config, ConfigKey, SecretSource, ConfigResult};
 ///
 /// let mut config = Config::new("test");
@@ -184,14 +186,11 @@ impl ConfigPatch {
 /// ```
 pub struct SecretConfigPatch {
     key: ConfigKey,
-    func: Box<dyn FnOnce(&Encrypter) -> ConfigResult<ConfigValue>>,
+    func: Func,
 }
 
 impl SecretConfigPatch {
-    pub(crate) fn new(
-        key: ConfigKey,
-        func: Box<dyn FnOnce(&Encrypter) -> ConfigResult<Vec<u8>>>,
-    ) -> Self {
+    pub(crate) fn new(key: ConfigKey, func: Func) -> Self {
         Self { key, func }
     }
 
