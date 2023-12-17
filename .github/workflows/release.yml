@@ -1,0 +1,33 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "release" ]
+  pull_request:
+    branches: [ "release" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Setup Rust Toolchain for GitHub CI
+      uses: actions-rust-lang/setup-rust-toolchain@v1.6.0
+    
+    - uses: actions/checkout@v3
+    - name: Run clippy
+      run: cargo clippy --all-features --all-targets -- -D warnings
+    - name: Build
+      run: cargo build --verbose
+    - name: Run tests
+      run: cargo test --verbose
+
+    - name: publish crates
+      uses: katyo/publish-crates@v2
+      with:
+        # Cargo registry token
+        registry-token: ${{secrets.crates_io}}
