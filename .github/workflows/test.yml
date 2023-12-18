@@ -2,8 +2,8 @@ name: Test
 
 on:
   pull_request:
-    branches: [dev]
-    types: [opened, edited]
+    branches: [dev, release]
+    types: [opened, synchronize]
 
 env:
   CARGO_TERM_COLOR: always
