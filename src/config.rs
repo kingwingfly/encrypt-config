@@ -1,11 +1,15 @@
 //! # Config
 //! This module provides a `Config` struct that can be used to store configuration values.
 
+use snafu::OptionExt;
 use std::collections::HashMap;
 
-use crate::{encrypt_utils::Encrypter, ConfigResult, PersistSource, SecretSource, Source};
+use crate::{
+    encrypt_utils::Encrypter, CollectFailed, ConfigNotFound, ConfigResult, PersistSource,
+    SecretSource, Source,
+};
 
-pub type ConfigKey = String;
+pub(crate) type ConfigKey = String;
 pub(crate) type ConfigValue = Vec<u8>;
 
 /// A struct that can be used to store configuration values.
@@ -20,7 +24,7 @@ pub(crate) type ConfigValue = Vec<u8>;
 ///     type Value = String;
 ///     type Map = Vec<(String, Self::Value)>;
 ///
-///     fn collect(&self) -> ConfigResult<Self::Map> {
+///     fn collect(&self) -> Result<Self::Map, Box<dyn std::error::Error>> {
 ///         Ok(vec![("key".to_owned(), "value".to_owned())])
 ///     }
 /// }
@@ -56,7 +60,9 @@ impl Config {
         K: AsRef<str>,
         R: serde::de::DeserializeOwned,
     {
-        let serded = self.inner.get(key.as_ref()).unwrap();
+        let serded = self.inner.get(key.as_ref()).context(ConfigNotFound {
+            key: key.as_ref().to_owned(),
+        })?;
         Ok(serde_json::from_slice(serded).unwrap())
     }
 
@@ -64,7 +70,8 @@ impl Config {
     /// The source must implement [`Source`] trait, which is for normal config that does not need to be encrypted or persisted.
     pub fn add_source(&mut self, source: impl Source) -> ConfigResult<()> {
         let map = source
-            .collect()?
+            .collect()
+            .map_err(|_| CollectFailed.build())?
             .into_iter()
             .map(|(k, v)| (k, serde_json::to_vec(&v).unwrap()));
         self.inner.extend(map);
@@ -74,7 +81,7 @@ impl Config {
     /// Add a persist source to the config.
     /// The source must implement [`PersistSource`] trait, which is for config that needs to be persisted.
     pub fn add_persist_source(&mut self, source: impl PersistSource) -> ConfigResult<()> {
-        let patch = source.collect()?;
+        let patch = source.collect();
         patch.apply(self)?;
         Ok(())
     }
@@ -82,7 +89,7 @@ impl Config {
     /// Add a secret source to the config.
     /// The source must implement [`SecretSource`] trait, which is for config that needs to be encrypted and persisted.
     pub fn add_secret_source(&mut self, source: impl SecretSource) -> ConfigResult<()> {
-        let patch = source.collect()?;
+        let patch = source.collect();
         patch.apply(self)?;
         Ok(())
     }
@@ -93,7 +100,7 @@ impl Config {
 /// No change will happen until you call [`ConfigPatch::apply`].
 /// # Example
 /// ```no_run
-/// use encrypt_config::{Config, ConfigKey, PersistSource, ConfigResult};
+/// use encrypt_config::{Config, PersistSource, ConfigResult};
 ///
 /// let mut config = Config::new("test");
 ///
@@ -104,7 +111,7 @@ impl Config {
 /// impl PersistSource for PersistSourceImpl {
 ///     type Value = Foo;
 ///
-///     fn source_name(&self) -> ConfigKey {
+///     fn source_name(&self) -> String {
 ///         "test".to_owned()
 ///     }
 ///
@@ -120,11 +127,10 @@ impl Config {
 /// config.add_persist_source(PersistSourceImpl).unwrap();
 /// let v: Foo = config.get("test").unwrap();
 /// assert_eq!(v, Foo("hello".to_owned()));
-/// let patch = PersistSourceImpl.upgrade(&Foo("hi".to_owned())).unwrap();
+/// let patch = PersistSourceImpl.upgrade(&Foo("hi".to_owned()));
 /// patch.apply(&mut config).unwrap();
 /// let v: Foo = config.get("test").unwrap();
 /// assert_eq!(v, Foo("hi".to_owned()));
-/// # std::fs::remove_file("tests/test").unwrap();
 /// ```
 pub struct ConfigPatch {
     key: ConfigKey,
@@ -151,7 +157,7 @@ type Func = Box<dyn FnOnce(&Encrypter) -> ConfigResult<ConfigValue>>;
 /// No change will happen until you call [`SecretConfigPatch::apply`].
 /// # Example
 /// ```no_run
-/// use encrypt_config::{Config, ConfigKey, SecretSource, ConfigResult};
+/// use encrypt_config::{Config, SecretSource, ConfigResult};
 ///
 /// let mut config = Config::new("test");
 ///
@@ -162,7 +168,7 @@ type Func = Box<dyn FnOnce(&Encrypter) -> ConfigResult<ConfigValue>>;
 /// impl SecretSource for SecretSourceImpl {
 ///     type Value = Foo;
 ///
-///     fn source_name(&self) -> ConfigKey {
+///     fn source_name(&self) -> String {
 ///         "secret_test".to_owned()
 ///     }
 ///
@@ -178,11 +184,10 @@ type Func = Box<dyn FnOnce(&Encrypter) -> ConfigResult<ConfigValue>>;
 /// config.add_secret_source(SecretSourceImpl).unwrap();
 /// let v: Foo = config.get("secret_test").unwrap();
 /// assert_eq!(v, Foo("hello".to_owned()));
-/// let patch = SecretSourceImpl.upgrade(&Foo("hi".to_owned())).unwrap();
+/// let patch = SecretSourceImpl.upgrade(&Foo("hi".to_owned()));
 /// patch.apply(&mut config).unwrap();
 /// let v: Foo = config.get("secret_test").unwrap();
 /// assert_eq!(v, Foo("hi".to_owned()));
-/// # std::fs::remove_file("tests/secret_test").unwrap();
 /// ```
 pub struct SecretConfigPatch {
     key: ConfigKey,
