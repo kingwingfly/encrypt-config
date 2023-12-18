@@ -62,7 +62,24 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-A rust crate to manage, persist, encrypt configurations.
+Sometimes, we need to store config in our application that we don't want to expose to the public. For example, the database password, the api key, etc.
+
+One solution is to store them in the OS' secret manager, such as `Keychain` on macOS, `Credential Manager` on Windows, `libsecret` on Linux.
+
+However, they usually have limitation on the secret length. For example, `Keychain` only allows 255 bytes for the secret,  `Credential Manager` is even shorter. So we can't store a long secret in it.
+
+Another solution is to store the secret in a file and encrypt it with a rsa public key, and store the private key in the OS' secret manager. This is what this crate does.
+
+In other cases, maybe our secret is not a `String`, but a config `struct`. We can also use this crate to manage it. When invoke `Config::get`, it will deserialize the config from the cache and return it.
+
+This crate provides 3 ways to manage your config:
+- `Source`: A normal source, not persisted or encrypted
+- `PersistSource`: A source that will be persisted to local file, not encrypted
+- `SecretSource`: A source that will be persisted to local file and encrypted
+
+This crate also has some optional features:
+- `default_config_dir`: If enabled, the default config dir will be used.
+- `protobuf`: If enabled, protobuf will be used instead of json for better performance. (Not implemented yet)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
