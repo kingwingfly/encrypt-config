@@ -16,6 +16,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Extract version
+        id: extract-version
+        run: echo "::set-output name=version::$(grep -oP '^version = "\K[^"]+' Cargo.toml | awk '{$1=$1;print}')"
+
       - name: Cache restore
         uses: actions/cache/restore@v3
         id: cache-cargo-restore
@@ -26,7 +30,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo
+          key: ${{ runner.os }}-cargo-${{ steps.extract-version.outputs.version }}
 
       - name: Run clippy
         run: cargo clippy --all-features --all-targets -- -D warnings
@@ -36,6 +40,7 @@ jobs:
         run: cargo test
 
       - name: Cache save
+        if: steps.cache-cargo-restore.outputs.cache-hit != 'true'
         uses: actions/cache/save@v3
         id: cache-cargo-save
         with:
