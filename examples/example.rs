@@ -1,4 +1,5 @@
 use encrypt_config::{Config, PersistSource, SecretSource, Source};
+use serde::{Deserialize, Serialize};
 
 struct NormalSource;
 impl Source for NormalSource {
@@ -10,73 +11,66 @@ impl Source for NormalSource {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
 struct Foo(String);
 
 struct PersistSourceImpl;
 impl PersistSource for PersistSourceImpl {
     type Value = Foo;
 
-    fn source_name(&self) -> String {
-        "test".to_owned()
-    }
-
-    fn default(&self) -> Self::Value {
-        Foo("hello".to_owned())
-    }
-
+    #[cfg(not(feature = "default_config_dir"))]
     fn path(&self) -> std::path::PathBuf {
-        std::path::PathBuf::from("tests").join(self.source_name())
+        std::path::PathBuf::from("tests").join("persist.conf")
+    }
+
+    #[cfg(feature = "default_config_dir")]
+    fn source_name(&self) -> String {
+        "persist_test".to_owned()
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq)]
-struct Bar(String);
-
 struct SecretSourceImpl;
 impl SecretSource for SecretSourceImpl {
-    type Value = Bar;
+    type Value = Foo;
 
+    #[cfg(not(feature = "default_config_dir"))]
+    fn path(&self) -> std::path::PathBuf {
+        std::path::PathBuf::from("tests").join("secret.conf")
+    }
+
+    #[cfg(feature = "default_config_dir")]
     fn source_name(&self) -> String {
         "secret_test".to_owned()
-    }
-
-    fn default(&self) -> Self::Value {
-        Bar("world".to_owned())
-    }
-
-    fn path(&self) -> std::path::PathBuf {
-        std::path::PathBuf::from("tests").join(self.source_name())
     }
 }
 
 fn config_tests() {
-    let mut config = Config::new("test");
+    let mut config = Config::new("test"); // Now it's empty
     config.add_source(NormalSource).unwrap();
-    config.add_persist_source(PersistSourceImpl).unwrap();
-    config.add_secret_source(SecretSourceImpl).unwrap();
-    let v: String = config.get("key").unwrap();
-    assert_eq!(v, "value");
-    let v: Foo = config.get("test").unwrap();
-    assert_eq!(v, Foo("hello".to_owned()));
-    let v: Bar = config.get("secret_test").unwrap();
-    assert_eq!(v, Bar("world".to_owned()));
-    let patch = NormalSource.upgrade("key", &"new_value".to_owned());
+    assert_eq!(config.get::<_, String>("key").unwrap(), "value");
+    let patch = NormalSource.upgrade("key", &"new value".to_owned());
     patch.apply(&mut config).unwrap();
-    let v: String = config.get("key").unwrap();
-    assert_eq!(v, "new_value");
-    let patch = PersistSourceImpl.upgrade(&Foo("hi".to_owned()));
-    patch.apply(&mut config).unwrap();
-    let v: Foo = config.get("test").unwrap();
-    assert_eq!(v, Foo("hi".to_owned()));
-    let patch = SecretSourceImpl.upgrade(&Bar("Louis".to_owned()));
-    patch.apply(&mut config).unwrap();
-    let v: Bar = config.get("secret_test").unwrap();
-    assert_eq!(v, Bar("Louis".to_owned()));
-    std::fs::remove_file("tests/secret_test").unwrap();
-    std::fs::remove_file("tests/test").unwrap();
-}
+    assert_eq!(config.get::<_, String>("key").unwrap(), "new value");
 
+    config.add_persist_source(PersistSourceImpl).unwrap();
+    let new_value = Foo("hello".to_owned());
+    let patch = PersistSourceImpl.upgrade("persist", &new_value);
+    patch.apply(&mut config).unwrap();
+    assert_eq!(config.get::<_, Foo>("persist").unwrap(), new_value);
+
+    let mut config_new = Config::new("test");
+    config_new.add_persist_source(PersistSourceImpl).unwrap(); // Read config from disk
+    assert_eq!(config_new.get::<_, Foo>("persist").unwrap(), new_value);
+
+    config.add_secret_source(SecretSourceImpl).unwrap();
+    let new_value = Foo("world".to_owned());
+    let patch = SecretSourceImpl.upgrade("secret", &new_value);
+    patch.apply(&mut config).unwrap();
+    assert_eq!(config.get::<_, Foo>("secret").unwrap(), new_value);
+
+    std::fs::remove_file("tests/persist.conf").unwrap();
+    std::fs::remove_file("tests/secret.conf").unwrap();
+}
 fn main() {
     config_tests();
 }
