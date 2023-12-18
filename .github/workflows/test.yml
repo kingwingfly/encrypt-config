@@ -14,18 +14,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          components: clippy
-
       - uses: actions/checkout@v3
+
+      - name: Extract version
+        id: extract-version
+        run: echo "version=$(grep -oP '^version = "\K[^"]+' Cargo.toml | awk '{$1=$1;print}')" >> $GITHUB_OUTPUT
+
+      - name: Cache restore
+        uses: actions/cache/restore@v3
+        id: cache-cargo-restore
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ steps.extract-version.outputs.version }}
 
       - name: Run clippy
         run: cargo clippy --all-features --all-targets -- -D warnings
       - name: Build
-        run: cargo build --verbose
+        run: cargo build
       - name: Run tests
-        run: cargo test --verbose
+        run: cargo test
+
+      - name: Cache save
+        if: steps.cache-cargo-restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v3
+        id: cache-cargo-save
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ steps.cache-cargo-restore.outputs.cache-primary-key }}
