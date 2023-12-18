@@ -1,11 +1,11 @@
-use encrypt_config::{Config, ConfigKey, ConfigResult, PersistSource, SecretSource, Source};
+use encrypt_config::{Config, PersistSource, SecretSource, Source};
 
 struct NormalSource;
 impl Source for NormalSource {
     type Value = String;
     type Map = Vec<(String, Self::Value)>;
 
-    fn collect(&self) -> ConfigResult<Self::Map> {
+    fn collect(&self) -> Result<Self::Map, Box<dyn std::error::Error>> {
         Ok(vec![("key".to_owned(), "value".to_owned())])
     }
 }
@@ -17,7 +17,7 @@ struct PersistSourceImpl;
 impl PersistSource for PersistSourceImpl {
     type Value = Foo;
 
-    fn source_name(&self) -> ConfigKey {
+    fn source_name(&self) -> String {
         "test".to_owned()
     }
 
@@ -37,7 +37,7 @@ struct SecretSourceImpl;
 impl SecretSource for SecretSourceImpl {
     type Value = Bar;
 
-    fn source_name(&self) -> ConfigKey {
+    fn source_name(&self) -> String {
         "secret_test".to_owned()
     }
 
@@ -61,17 +61,15 @@ fn config_tests() {
     assert_eq!(v, Foo("hello".to_owned()));
     let v: Bar = config.get("secret_test").unwrap();
     assert_eq!(v, Bar("world".to_owned()));
-    let patch = NormalSource
-        .upgrade("key", &"new_value".to_owned())
-        .unwrap();
+    let patch = NormalSource.upgrade("key", &"new_value".to_owned());
     patch.apply(&mut config).unwrap();
     let v: String = config.get("key").unwrap();
     assert_eq!(v, "new_value");
-    let patch = PersistSourceImpl.upgrade(&Foo("hi".to_owned())).unwrap();
+    let patch = PersistSourceImpl.upgrade(&Foo("hi".to_owned()));
     patch.apply(&mut config).unwrap();
     let v: Foo = config.get("test").unwrap();
     assert_eq!(v, Foo("hi".to_owned()));
-    let patch = SecretSourceImpl.upgrade(&Bar("Louis".to_owned())).unwrap();
+    let patch = SecretSourceImpl.upgrade(&Bar("Louis".to_owned()));
     patch.apply(&mut config).unwrap();
     let v: Bar = config.get("secret_test").unwrap();
     assert_eq!(v, Bar("Louis".to_owned()));

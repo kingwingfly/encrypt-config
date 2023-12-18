@@ -16,14 +16,13 @@ impl Encrypter {
     pub(crate) fn new(config_name: impl AsRef<str>) -> ConfigResult<Self> {
         let entry = keyring_entry(config_name);
         match entry.get_password() {
-            Ok(serded_enc) => Ok(serde_json::from_str(&serded_enc).unwrap()),
-            Err(_) => {
+            Ok(serded_enc) => Ok(serde_json::from_str(&serded_enc)?),
+            Err(keyring::Error::NoEntry) => {
                 let new_enc = Encrypter::build();
-                entry
-                    .set_password(&serde_json::to_string(&new_enc).unwrap())
-                    .unwrap();
+                entry.set_password(&serde_json::to_string(&new_enc).unwrap())?;
                 Ok(new_enc)
             }
+            Err(e) => Err(e)?,
         }
     }
 
@@ -43,6 +42,22 @@ impl Encrypter {
     //     self.encrypt_serded(&origin)
     // }
 
+    /// This is used to encrypt seriliazed Value.
+    /// # Arguments
+    /// * origin - The returning of `serde_json::to_vec`
+    /// # Example
+    /// ```ignore
+    /// let foo = Foo::new();
+    /// let serded = serde_json::to_vec(&foo)?;
+    /// let encrypter = Encrypter::new("test")?;
+    /// let encrypted = encrypter.encrypt_serded(serded)?;
+    /// ```
+    /// # Question
+    /// Q: Why not use `Foo` as origin more conviniently?
+    ///
+    /// A: The user passes `&Foo` to [`SecretSource::upgrade`] to upgrade the config, which returns a [`SecretConfigPatch`],
+    /// containing a [`Func`] as its field. `Func`, which is a boxed closure, should take the ownership of `Foo` if directly use
+    /// it. To avoid this, and due to we need seriliaze it anyway, we just move its serded `Vec<u8>` into the closure.
     pub(crate) fn encrypt_serded(&self, origin: &[u8]) -> ConfigResult<Encrypted> {
         let mut rng = rand::thread_rng();
         let chunk_size = if cfg!(not(target_os = "windows")) {
@@ -53,7 +68,7 @@ impl Encrypter {
         let pub_key = RsaPublicKey::from(&self.priv_key);
         let mut encrypted = vec![];
         for c in origin.chunks(chunk_size) {
-            encrypted.extend(pub_key.encrypt(&mut rng, Pkcs1v15Encrypt, c).unwrap());
+            encrypted.extend(pub_key.encrypt(&mut rng, Pkcs1v15Encrypt, c)?);
         }
         Ok(encrypted)
     }
@@ -66,7 +81,7 @@ impl Encrypter {
             128
         };
         for c in encrypted.chunks(chunk_size) {
-            decrypted.extend(self.priv_key.decrypt(Pkcs1v15Encrypt, c).unwrap());
+            decrypted.extend(self.priv_key.decrypt(Pkcs1v15Encrypt, c)?);
         }
         Ok(decrypted)
     }

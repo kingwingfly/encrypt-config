@@ -1,11 +1,10 @@
-//! # encrypt-config
-//! A crate helping managing, persisting, encrypting configs.
+#![doc = include_str!("../README.md")]
 
 mod config;
 mod encrypt_utils;
 mod error;
 
-pub use config::{Config, ConfigKey, ConfigPatch, SecretConfigPatch};
+pub use config::{Config, ConfigPatch, SecretConfigPatch};
 pub use error::*;
 
 use encrypt_utils::Encrypter;
@@ -17,13 +16,12 @@ pub trait Source {
     type Value: serde::Serialize;
     type Map: IntoIterator<Item = (String, Self::Value)>;
 
-    fn collect(&self) -> ConfigResult<Self::Map>;
+    fn collect(&self) -> Result<Self::Map, Box<dyn std::error::Error>>;
 
-    fn upgrade(&self, key: impl AsRef<str>, new_value: &Self::Value) -> ConfigResult<ConfigPatch> {
+    fn upgrade(&self, key: impl AsRef<str>, new_value: &Self::Value) -> ConfigPatch {
         let serded = serde_json::to_vec(&new_value).unwrap();
         let func = Box::new(move || Ok(serded));
-        let patch = ConfigPatch::new(key.as_ref().to_owned(), func);
-        Ok(patch)
+        ConfigPatch::new(key.as_ref().to_owned(), func)
     }
 }
 
@@ -33,39 +31,39 @@ pub trait Source {
 pub trait PersistSource {
     type Value: serde::Serialize + serde::de::DeserializeOwned;
 
-    fn source_name(&self) -> ConfigKey;
+    fn source_name(&self) -> String;
 
     /// This will be used to initialize the source if not existing.
     fn default(&self) -> Self::Value;
 
     #[cfg(feature = "default_config_dir")]
     fn path(&self) -> std::path::PathBuf {
-        dirs_next::config_dir().unwrap().join(self.source_name())
+        dirs_next::config_dir()
+            .expect("Default config dir unknown, turn off feature `default_config_dir`")
+            .join(self.source_name())
     }
 
     #[cfg(not(feature = "default_config_dir"))]
     fn path(&self) -> std::path::PathBuf;
 
-    fn collect(&self) -> ConfigResult<ConfigPatch> {
+    fn collect(&self) -> ConfigPatch {
         match std::fs::read(self.path()) {
             Ok(serded) => {
                 let func = Box::new(move || Ok(serded));
-                let patch = ConfigPatch::new(self.source_name(), func);
-                Ok(patch)
+                ConfigPatch::new(self.source_name(), func)
             }
-            Err(_) => Ok(self.upgrade(&self.default()).unwrap()),
+            Err(_) => self.upgrade(&self.default()),
         }
     }
 
-    fn upgrade(&self, new_value: &Self::Value) -> ConfigResult<ConfigPatch> {
+    fn upgrade(&self, new_value: &Self::Value) -> ConfigPatch {
         let path = self.path();
         let serded = serde_json::to_vec(new_value).unwrap();
         let func = Box::new(move || {
-            std::fs::write(path, &serded).unwrap();
+            std::fs::write(path, &serded)?;
             Ok(serded)
         });
-        let patch = ConfigPatch::new(self.source_name(), func);
-        Ok(patch)
+        ConfigPatch::new(self.source_name(), func)
     }
 }
 
@@ -75,43 +73,43 @@ pub trait PersistSource {
 pub trait SecretSource {
     type Value: serde::Serialize + serde::de::DeserializeOwned;
 
-    fn source_name(&self) -> ConfigKey;
+    fn source_name(&self) -> String;
 
     /// This will be used to initialize the source if not existing.
     fn default(&self) -> Self::Value;
 
     #[cfg(feature = "default_config_dir")]
     fn path(&self) -> std::path::PathBuf {
-        dirs_next::config_dir().unwrap().join(self.source_name())
+        dirs_next::config_dir()
+            .expect("Default config dir unknown, turn off feature `default_config_dir`")
+            .join(self.source_name())
     }
 
     #[cfg(not(feature = "default_config_dir"))]
     fn path(&self) -> std::path::PathBuf;
 
-    fn collect(&self) -> ConfigResult<SecretConfigPatch> {
+    fn collect(&self) -> SecretConfigPatch {
         match std::fs::read(self.path()) {
             Ok(encrypted) => {
                 let func = Box::new(move |encrypter: &Encrypter| {
                     let serded = encrypter.decrypt(&encrypted).unwrap();
                     Ok(serded)
                 });
-                let patch = SecretConfigPatch::new(self.source_name(), func);
-                Ok(patch)
+                SecretConfigPatch::new(self.source_name(), func)
             }
-            Err(_) => Ok(self.upgrade(&self.default()).unwrap()),
+            Err(_) => self.upgrade(&self.default()),
         }
     }
 
-    fn upgrade(&self, new_value: &Self::Value) -> ConfigResult<SecretConfigPatch> {
+    fn upgrade(&self, new_value: &Self::Value) -> SecretConfigPatch {
         let path = self.path();
         let new_value = serde_json::to_vec(new_value).unwrap();
         let func = Box::new(move |encrypter: &Encrypter| {
-            let encrypted = encrypter.encrypt_serded(&new_value).unwrap();
-            std::fs::write(path, encrypted).unwrap();
+            let encrypted = encrypter.encrypt_serded(&new_value)?;
+            std::fs::write(path, encrypted)?;
             Ok(new_value)
         });
-        let patch = SecretConfigPatch::new(self.source_name(), func);
-        Ok(patch)
+        SecretConfigPatch::new(self.source_name(), func)
     }
 }
 
@@ -124,7 +122,7 @@ mod tests {
         type Value = String;
         type Map = Vec<(String, Self::Value)>;
 
-        fn collect(&self) -> ConfigResult<Self::Map> {
+        fn collect(&self) -> Result<Self::Map, Box<dyn std::error::Error>> {
             Ok(vec![("key".to_owned(), "value".to_owned())])
         }
     }
@@ -136,7 +134,7 @@ mod tests {
     impl PersistSource for PersistSourceImpl {
         type Value = Foo;
 
-        fn source_name(&self) -> ConfigKey {
+        fn source_name(&self) -> String {
             "test".to_owned()
         }
 
@@ -156,7 +154,7 @@ mod tests {
     impl SecretSource for SecretSourceImpl {
         type Value = Bar;
 
-        fn source_name(&self) -> ConfigKey {
+        fn source_name(&self) -> String {
             "secret_test".to_owned()
         }
 
@@ -181,17 +179,15 @@ mod tests {
         assert_eq!(v, Foo("hello".to_owned()));
         let v: Bar = config.get("secret_test").unwrap();
         assert_eq!(v, Bar("world".to_owned()));
-        let patch = NormalSource
-            .upgrade("key", &"new_value".to_owned())
-            .unwrap();
+        let patch = NormalSource.upgrade("key", &"new_value".to_owned());
         patch.apply(&mut config).unwrap();
         let v: String = config.get("key").unwrap();
         assert_eq!(v, "new_value");
-        let patch = PersistSourceImpl.upgrade(&Foo("hi".to_owned())).unwrap();
+        let patch = PersistSourceImpl.upgrade(&Foo("hi".to_owned()));
         patch.apply(&mut config).unwrap();
         let v: Foo = config.get("test").unwrap();
         assert_eq!(v, Foo("hi".to_owned()));
-        let patch = SecretSourceImpl.upgrade(&Bar("Louis".to_owned())).unwrap();
+        let patch = SecretSourceImpl.upgrade(&Bar("Louis".to_owned()));
         patch.apply(&mut config).unwrap();
         let v: Bar = config.get("secret_test").unwrap();
         assert_eq!(v, Bar("Louis".to_owned()));

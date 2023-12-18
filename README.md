@@ -95,8 +95,8 @@ Details here: [Example](example/eamples.rs)
 
 <!-- USAGE EXAMPLES -->
 ## Usage
-```rust
-use encrypt_config::{Config, ConfigKey, ConfigResult, SecretSource};
+```no_run
+use encrypt_config::{Config, ConfigResult, SecretSource};
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq)]
 struct Bar(String);
@@ -108,7 +108,7 @@ impl SecretSource for SecretSourceImpl {
     type Value = Bar;
 
     // The key to query from `Config`
-    fn source_name(&self) -> ConfigKey {
+    fn source_name(&self) -> String {
         "secret_test".to_owned()
     }
 
@@ -132,7 +132,7 @@ let v: Bar = config.get("secret_test").unwrap();
 assert_eq!(v, Bar("world".to_owned()));
 
 // `upgrade` will return a `Patch`
-let patch = SecretSourceImpl.upgrade(&Bar("Louis".to_owned())).unwrap();
+let patch = SecretSourceImpl.upgrade(&Bar("Louis".to_owned()));
 // No change will happen until the `Patch` is applied
 patch.apply(&mut config).unwrap();
 let v: Bar = config.get("secret_test").unwrap();
