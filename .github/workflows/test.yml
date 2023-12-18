@@ -31,12 +31,12 @@ jobs:
       - name: Run clippy
         run: cargo clippy --all-features --all-targets -- -D warnings
       - name: Build
-        run: cargo build --verbose
+        run: cargo build
       - name: Run tests
-        run: cargo test --verbose
+        run: cargo test
 
       - name: Cache save
-        uses: actions/cache@v3
+        uses: actions/save@v3
         id: cache-cargo-save
         with:
           path: |
