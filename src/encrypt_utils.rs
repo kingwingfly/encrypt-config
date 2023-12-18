@@ -5,7 +5,7 @@ use crate::ConfigResult;
 use rsa::{Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub(crate) struct Encrypter {
+pub struct Encrypter {
     priv_key: RsaPrivateKey,
 }
 
@@ -13,8 +13,8 @@ pub(crate) type Encrypted = Vec<u8>;
 pub(crate) type Decrypted = Vec<u8>;
 
 impl Encrypter {
-    pub(crate) fn new(config_name: impl AsRef<str>) -> ConfigResult<Self> {
-        let entry = keyring_entry(config_name);
+    pub(crate) fn new(secret_name: impl AsRef<str>) -> ConfigResult<Self> {
+        let entry = keyring_entry(secret_name);
         match entry.get_password() {
             Ok(serded_enc) => Ok(serde_json::from_str(&serded_enc)?),
             Err(keyring::Error::NoEntry) => {
@@ -37,10 +37,10 @@ impl Encrypter {
         Self { priv_key }
     }
 
-    // pub(crate) fn encrypt<S: serde::Serialize>(&self, to_encrypt: &S) -> ConfigResult<Encrypted> {
-    //     let origin = serde_json::to_vec(to_encrypt).unwrap();
-    //     self.encrypt_serded(&origin)
-    // }
+    pub(crate) fn encrypt<S: serde::Serialize>(&self, to_encrypt: &S) -> ConfigResult<Encrypted> {
+        let origin = serde_json::to_vec(to_encrypt).unwrap();
+        self.encrypt_serded(&origin)
+    }
 
     /// This is used to encrypt seriliazed Value.
     /// # Arguments
@@ -87,9 +87,9 @@ impl Encrypter {
     }
 }
 
-fn keyring_entry(config_name: impl AsRef<str>) -> keyring::Entry {
+fn keyring_entry(secret_name: impl AsRef<str>) -> keyring::Entry {
     let user = std::env::var("USER").unwrap_or("unknown".to_string());
     #[cfg(test)]
     keyring::set_default_credential_builder(keyring::mock::default_credential_builder());
-    keyring::Entry::new_with_target("user", config_name.as_ref(), &user).unwrap()
+    keyring::Entry::new_with_target("user", secret_name.as_ref(), &user).unwrap()
 }
