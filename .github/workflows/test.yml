@@ -3,7 +3,7 @@ name: Test
 on:
   pull_request:
     branches: [dev]
-    types: [opened]
+    types: [opened, edited]
 
 env:
   CARGO_TERM_COLOR: always
