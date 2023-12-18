@@ -35,8 +35,14 @@ mod tests {
     impl PersistSource for PersistSourceImpl {
         type Value = Foo;
 
+        #[cfg(not(feature = "default_config_dir"))]
         fn path(&self) -> std::path::PathBuf {
             std::path::PathBuf::from("tests").join("persist.conf")
+        }
+
+        #[cfg(feature = "default_config_dir")]
+        fn source_name(&self) -> String {
+            "persist_test".to_owned()
         }
     }
 
@@ -44,8 +50,14 @@ mod tests {
     impl SecretSource for SecretSourceImpl {
         type Value = Foo;
 
+        #[cfg(not(feature = "default_config_dir"))]
         fn path(&self) -> std::path::PathBuf {
             std::path::PathBuf::from("tests").join("secret.conf")
+        }
+
+        #[cfg(feature = "default_config_dir")]
+        fn source_name(&self) -> String {
+            "secret_test".to_owned()
         }
     }
 
@@ -74,8 +86,8 @@ mod tests {
         patch.apply(&mut config).unwrap();
         assert_eq!(config.get::<_, Foo>("secret").unwrap(), new_value);
 
-        std::fs::remove_file("tests/persist.conf").unwrap();
-        std::fs::remove_file("tests/secret.conf").unwrap();
+        std::fs::remove_file(PersistSourceImpl.path()).unwrap();
+        std::fs::remove_file(SecretSourceImpl.path()).unwrap();
     }
 
     #[test]
@@ -84,8 +96,14 @@ mod tests {
         impl PersistSource for DefaultSource {
             type Value = String;
 
+            #[cfg(not(feature = "default_config_dir"))]
             fn path(&self) -> std::path::PathBuf {
                 std::path::PathBuf::from("tests").join("default.conf")
+            }
+
+            #[cfg(feature = "default_config_dir")]
+            fn source_name(&self) -> String {
+                "default.conf".to_owned()
             }
 
             fn default(&self) -> HashMap<String, Self::Value> {

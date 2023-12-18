@@ -33,10 +33,12 @@ jobs:
 
       - name: Run clippy
         run: cargo clippy --all-features --all-targets -- -D warnings
-      - name: Build
-        run: cargo build
-      - name: Run tests
+
+      - name: Run all tests with default features
         run: cargo test
+
+      - name: Run tests(no doc test) with all features
+        run: cargo test test --all-features
 
       - name: publish crates
         uses: katyo/publish-crates@v2

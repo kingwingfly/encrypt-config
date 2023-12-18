@@ -18,8 +18,14 @@ struct PersistSourceImpl;
 impl PersistSource for PersistSourceImpl {
     type Value = Foo;
 
+    #[cfg(not(feature = "default_config_dir"))]
     fn path(&self) -> std::path::PathBuf {
         std::path::PathBuf::from("tests").join("persist.conf")
+    }
+
+    #[cfg(feature = "default_config_dir")]
+    fn source_name(&self) -> String {
+        "persist_test".to_owned()
     }
 }
 
@@ -27,8 +33,14 @@ struct SecretSourceImpl;
 impl SecretSource for SecretSourceImpl {
     type Value = Foo;
 
+    #[cfg(not(feature = "default_config_dir"))]
     fn path(&self) -> std::path::PathBuf {
         std::path::PathBuf::from("tests").join("secret.conf")
+    }
+
+    #[cfg(feature = "default_config_dir")]
+    fn source_name(&self) -> String {
+        "secret_test".to_owned()
     }
 }
 

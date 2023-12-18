@@ -72,7 +72,7 @@ pub trait PersistSource {
     type Value: Serialize + DeserializeOwned;
 
     #[cfg(feature = "default_config_dir")]
-    fn source_name() -> String;
+    fn source_name(&self) -> String;
 
     #[cfg(feature = "default_config_dir")]
     fn path(&self) -> std::path::PathBuf {
@@ -145,7 +145,7 @@ pub trait SecretSource {
     type Value: Serialize + DeserializeOwned;
 
     #[cfg(feature = "default_config_dir")]
-    fn source_name() -> String;
+    fn source_name(&self) -> String;
 
     #[cfg(feature = "default_config_dir")]
     fn path(&self) -> std::path::PathBuf {
