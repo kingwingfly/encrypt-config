@@ -16,7 +16,7 @@ jobs:
 
       - name: Extract version
         id: extract-version
-        run: echo "version=$(grep -oP '^version = "\K[^"]+' Cargo.toml | awk '{$1=$1;print}')" >> $GITHUB_OUTPUT
+        run: echo "VERSION=$(grep -oP '^version = "\K[^"]+' Cargo.toml | awk '{$1=$1;print}')" >> $GITHUB_OUTPUT
 
       - name: Cache restore
         uses: actions/cache/restore@v3
@@ -28,7 +28,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-${{ steps.extract-version.outputs.version }}
+          key: ${{ runner.os }}-cargo-${{ steps.extract-version.outputs.VERSION }}
 
       - name: Run clippy
         run: cargo clippy --all-features --all-targets -- -D warnings
@@ -44,3 +44,15 @@ jobs:
         with:
           # crates.io registry token
           registry-token: ${{ secrets.crates_io }}
+
+      - name: Create Tag
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const {VERSION} = process.env          
+            github.rest.git.createRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: `refs/tags/v${VERSION}`,
+                sha: context.sha
+            })
