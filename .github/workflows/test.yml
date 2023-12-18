@@ -2,7 +2,7 @@ name: Rust
 
 on:
   push:
-    branches: ["dev"]
+    branches: ["dev", "7-action-cache"]
   pull_request:
     branches: ["dev"]
 
@@ -14,14 +14,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: actions/checkout@v3
+
+      - name: Cache restore
+        uses: actions/cache@v3
+        id: cache-cargo-restore
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo }}
+
       - name: toolchain
+        if: steps.cache-cargo-restore.outputs.cache-hit != 'true'
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: stable
           components: clippy
-
-      - uses: actions/checkout@v3
 
       - name: Run clippy
         run: cargo clippy --all-features --all-targets -- -D warnings
@@ -29,3 +42,15 @@ jobs:
         run: cargo build --verbose
       - name: Run tests
         run: cargo test --verbose
+
+      - name: Cache save
+        uses: actions/cache@v3
+        id: cache-cargo-save
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ steps.cache-cargo-restore.outputs.cache-primary-key }}

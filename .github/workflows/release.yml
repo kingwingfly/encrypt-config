@@ -33,4 +33,4 @@ jobs:
         uses: katyo/publish-crates@v2
         with:
           # Cargo registry token
-          registry-token: ${{secrets.crates_io}}
+          registry-token: ${{ secrets.crates_io }}
