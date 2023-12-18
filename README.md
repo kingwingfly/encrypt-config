@@ -95,7 +95,7 @@ Details here: [Example](example/eamples.rs)
 
 <!-- USAGE EXAMPLES -->
 ## Usage
-```no_run
+```rust no_run
 use encrypt_config::{Config, ConfigResult, SecretSource};
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq)]

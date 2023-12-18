@@ -2,7 +2,7 @@
 name = "encrypt_config"
 version = "0.0.1-alpha1"
 authors = ["Louis <836250617@qq.com>"]
-description = "A config manager, supporting encryption."
+description = "A rust crate to manage, persist and encrypt your configurations."
 license = "MIT"
 edition = "2021"
 repository = "https://github.com/kingwingfly/encrypt-config"
