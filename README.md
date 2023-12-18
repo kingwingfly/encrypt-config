@@ -20,10 +20,6 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <a href="https://github.com/kingwingfly/encrypt-config">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
-  </a>
-
 <h3 align="center">encrypt-config</h3>
 
   <p align="center">
@@ -52,7 +48,6 @@
         <li><a href="#built-with">Built With</a></li>
       </ul>
     </li>
-    <li><a href="#getting-started">Getting Started</a></li>
     <li><a href="#usage">Usage</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
     <li><a href="#contributing">Contributing</a></li>
@@ -66,8 +61,6 @@
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
-
-[![Product Name Screen Shot][product-screenshot]](https://github.com/kingwingfly/encrypt-config)
 
 A rust crate to manage, persist, encrypt configurations.
 
@@ -84,62 +77,38 @@ A rust crate to manage, persist, encrypt configurations.
 
 
 
-<!-- GETTING STARTED -->
-## Getting Started
-
-Details here: [Example](example/eamples.rs)
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
 <!-- USAGE EXAMPLES -->
 ## Usage
 ```rust no_run
-use encrypt_config::{Config, ConfigResult, SecretSource};
+use encrypt_config::{Config, SecretSource};
+use serde::{Deserialize, Serialize};
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq)]
-struct Bar(String);
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+struct Foo(String);
 
 struct SecretSourceImpl;
 
 // impl `SecectSource` trait for `SecretSourceImpl`
 impl SecretSource for SecretSourceImpl {
-    type Value = Bar;
+    type Value = Foo;
 
-    // The key to query from `Config`
-    fn source_name(&self) -> String {
-        "secret_test".to_owned()
-    }
-
-    // The default value if the persist file has not been created
-    fn default(&self) -> Self::Value {
-        Bar("world".to_owned())
-    }
-
-    // Where the encypted file is in. Don't need if turning on `default_config_dir` feature.
+    // Where the encypted file is. Don't need if turning on `default_config_dir` feature.
     fn path(&self) -> std::path::PathBuf {
-        std::path::PathBuf::from("tests").join(self.source_name())
+        std::path::PathBuf::from("tests").join("secret.conf")
     }
 }
 
-// `test` is the name of rsa private key in OS' secret manager
-let mut config = Config::new("test");
-config.add_secret_source(SecretSourceImpl).unwrap();
+let mut config = Config::new("test"); // `test` is the name of rsa private key in OS' secret manager
+config.add_secret_source(SecretSourceImpl).unwrap();  // This will read and decrypt the config from local storage. However, it is empty now.
 
-// `get` will do a deserialization
-let v: Bar = config.get("secret_test").unwrap();
-assert_eq!(v, Bar("world".to_owned()));
-
-// `upgrade` will return a `Patch`
-let patch = SecretSourceImpl.upgrade(&Bar("Louis".to_owned()));
-// No change will happen until the `Patch` is applied
-patch.apply(&mut config).unwrap();
-let v: Bar = config.get("secret_test").unwrap();
-assert_eq!(v, Bar("Louis".to_owned()));
+let new_value = Foo("value".to_owned());
+let patch = SecretSourceImpl.upgrade("key", &new_value); // `upgrade` will return a `Patch`
+patch.apply(&mut config).unwrap(); // No change will happen until the `Patch` is applied
+let v: Foo = config.get("key").unwrap();
+assert_eq!(v, Foo("value".to_owned()));
 ```
 
-_For more examples, please refer to the [Documentation](https://docs.rs/encrypt-config/latest/encrypt-config)_
+_For more examples, please refer to the [Example](examples/example.rs) or [Documentation](https://docs.rs/encrypt_config)_
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
