@@ -26,15 +26,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo }}
-
-      - name: toolchain
-        if: steps.cache-cargo-restore.outputs.cache-hit != 'true'
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          components: clippy
+          key: ${{ runner.os }}-cargo
 
       - name: Run clippy
         run: cargo clippy --all-features --all-targets -- -D warnings
