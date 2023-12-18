@@ -52,7 +52,6 @@
         <li><a href="#built-with">Built With</a></li>
       </ul>
     </li>
-    <li><a href="#getting-started">Getting Started</a></li>
     <li><a href="#usage">Usage</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
     <li><a href="#contributing">Contributing</a></li>
@@ -84,19 +83,10 @@ A rust crate to manage, persist, encrypt configurations.
 
 
 
-<!-- GETTING STARTED -->
-## Getting Started
-
-Details here: [Example](example/eamples.rs)
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
 <!-- USAGE EXAMPLES -->
 ## Usage
 ```rust no_run
-use encrypt_config::{Config, ConfigResult, SecretSource};
+use encrypt_config::{Config, SecretSource};
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq)]
 struct Bar(String);
@@ -139,7 +129,7 @@ let v: Bar = config.get("secret_test").unwrap();
 assert_eq!(v, Bar("Louis".to_owned()));
 ```
 
-_For more examples, please refer to the [Documentation](https://docs.rs/encrypt-config/latest/encrypt-config)_
+_For more examples, please refer to the [Example](examples/example.rs) or [Documentation](https://docs.rs/encrypt_config)_
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
