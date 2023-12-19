@@ -1,6 +1,6 @@
 [package]
-name = "encrypt_config"
-version = "0.0.1-alpha3"
+name = "encrypt-config"
+version = "0.0.1-alpha4"
 authors = ["Louis <836250617@qq.com>"]
 description = "A rust crate to manage, persist and encrypt your configurations."
 license = "MIT"
@@ -15,7 +15,7 @@ rsa = { version = "0.9.6", features = ["serde"] }
 keyring = "2.1.0"
 dirs-next = { version = "2.0.0", optional = true }
 rand = "0.8.5"
-
+encrypt-config-derive = { path = "encrypt-config-derive", version = "0.0.1-alpha4" }
 
 [profile.release]
 lto = true

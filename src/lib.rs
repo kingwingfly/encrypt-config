@@ -6,6 +6,7 @@ mod error;
 mod source;
 
 pub use config::{Config, ConfigPatch, SecretConfigPatch};
+pub use encrypt_config_derive::*;
 pub use error::*;
 pub use source::{PersistSource, SecretSource, Source};
 
