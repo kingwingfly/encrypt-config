@@ -1,0 +1,15 @@
+[package]
+name = "encrypt-config-derive"
+version = "0.0.1-alpha4"
+authors = ["Louis <836250617@qq.com>"]
+description = "A rust crate to manage, persist and encrypt your configurations."
+license = "MIT"
+edition = "2021"
+repository = "https://github.com/kingwingfly/encrypt-config"
+
+[dependencies]
+syn = { version = "2.0", features = ["full"] }
+quote = "1.0"
+
+[lib]
+proc-macro = true
