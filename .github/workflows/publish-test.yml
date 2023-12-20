@@ -1,4 +1,4 @@
-name: ReleaseTest
+name: PublishTest
 
 on:
   pull_request:
@@ -9,7 +9,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  publish:
+  publish-test:
     runs-on: ubuntu-latest
     permissions: write-all
 
@@ -46,3 +46,16 @@ jobs:
           cargo login ${{ secrets.crates_io }}
           cargo publish -p encrypt_config --dry-run
           cargo publish -p encrypt_config_derive --dry-run
+
+      - name: Cache save
+        if: steps.cache-cargo-restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v3
+        id: cache-cargo-save
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ steps.cache-cargo-restore.outputs.cache-primary-key }}
