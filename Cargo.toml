@@ -28,5 +28,5 @@ opt-level = 3
 [features]
 default = ["serde"]
 serde = ["dep:serde", "dep:serde_json"]
-default_config_dir = ["dep:dirs-next"]
+default_config_dir = ["dep:dirs-next", "encrypt-config-derive/default_config_dir"]
 protobuf = []
