@@ -96,6 +96,8 @@ This crate also has some optional features:
 
 <!-- USAGE EXAMPLES -->
 ## Usage
+_(You may see many `#[cfg(feature = "...")]` in the example below, if you are not familar to Rust, you may not know this attribute is for `Conditinal Compile`, so that I can test it in `cargo test --all-features` automatically to ensure all go right.)_
+
 You can implement the `Source`, `PersistSource` and `SecretSource` yourself.
 ```rust no_run
 use encrypt_config::{Config, SecretSource};
@@ -146,11 +148,13 @@ struct Foo(String);
 struct SourceFoo;
 
 //To derive [`PersistSource`]
+#[cfg(not(feature = "default_config_dir"))]
 #[derive(PersistSource)]
 #[source(value(Foo), path("tests/persist.conf"), default([("key".to_owned(), Foo("value".to_owned()))]))]
 struct PersistSourceFoo;
 
 // To derive [`SecretSource`]
+#[cfg(not(feature = "default_config_dir"))]
 #[derive(SecretSource)]
 #[source(value(Foo), path("tests/secret.conf"), default([("key".to_owned(), Foo("value".to_owned()))]))]
 struct SecretSourceFoo;
