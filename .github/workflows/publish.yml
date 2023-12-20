@@ -19,18 +19,6 @@ jobs:
         id: extract-version
         run: echo "VERSION=$(grep -oP '^version = "\K[^"]+' Cargo.toml | awk '{$1=$1;print}')" >> $GITHUB_OUTPUT
 
-      - name: Cache restore
-        uses: actions/cache/restore@v3
-        id: cache-cargo-restore
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ steps.extract-version.outputs.VERSION }}
-
       - name: Run clippy
         run: cargo clippy --all-features --all-targets -- -D warnings
 
