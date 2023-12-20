@@ -37,8 +37,8 @@ jobs:
       - name: Run all tests with default features
         run: cargo test
 
-      - name: Run tests(no doc test) with all features
-        run: cargo test test --all-features
+      - name: Run tests with all features
+        run: cargo test --all-features
 
       - name: Cache save
         if: steps.cache-cargo-restore.outputs.cache-hit != 'true'

@@ -2,7 +2,6 @@ use encrypt_config::{PersistSource, SecretSource, Source};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[test]
 fn derive_normal_test() {
     #[derive(Source)]
     struct SourceNoDefault;
@@ -43,7 +42,6 @@ fn derive_normal_test() {
 }
 
 #[cfg(not(feature = "default_config_dir"))]
-#[test]
 fn derive_persist_test() {
     #[derive(PersistSource)]
     #[source(path("tests/persist.conf"), default([("key".to_owned(), "value".to_owned())]))]
@@ -66,7 +64,6 @@ fn derive_persist_test() {
 }
 
 #[cfg(feature = "default_config_dir")]
-#[test]
 fn derive_persist_test_default_coonfig_dir() {
     #[derive(PersistSource)]
     #[source(source_name("persist.conf"), default([("key".to_owned(), "value".to_owned())]))]
@@ -78,7 +75,6 @@ fn derive_persist_test_default_coonfig_dir() {
 }
 
 #[cfg(not(feature = "default_config_dir"))]
-#[test]
 fn derive_secret_test() {
     #[derive(SecretSource)]
     #[source(path("tests/secret.conf"), default([("key".to_owned(), "value".to_owned())]))]
@@ -101,7 +97,6 @@ fn derive_secret_test() {
 }
 
 #[cfg(feature = "default_config_dir")]
-#[test]
 fn derive_secret_test_default_coonfig_dir() {
     #[derive(SecretSource)]
     #[source(source_name("secret.conf"), default([("key".to_owned(), "value".to_owned())]))]
@@ -110,4 +105,19 @@ fn derive_secret_test_default_coonfig_dir() {
         SourceArray.default(),
         HashMap::from([("key".to_owned(), "value".to_owned())])
     );
+}
+
+fn main() {
+    #[cfg(not(feature = "default_config_dir"))]
+    {
+        derive_normal_test();
+        derive_persist_test();
+        derive_secret_test();
+    }
+    #[cfg(feature = "default_config_dir")]
+    {
+        derive_normal_test();
+        derive_persist_test_default_coonfig_dir();
+        derive_secret_test_default_coonfig_dir();
+    }
 }
