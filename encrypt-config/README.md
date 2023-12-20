@@ -164,7 +164,7 @@ struct SecretSourceFoo;
 # }
 ```
 
-_For more examples, please refer to the [Example](encrypt-config/examples) or [Documentation](https://docs.rs/encrypt_config)_
+_For more examples, please refer to the [Example](https://github.com/kingwingfly/encrypt-config/blob/dev/examples) or [Documentation](https://docs.rs/encrypt_config)_
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
