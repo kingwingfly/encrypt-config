@@ -137,6 +137,8 @@ You can also use the derive macros.
 
 ```rust no_run
 // To derive [`Source`]
+# #[cfg(feature = "derive")]
+# {
 use encrypt_config::{PersistSource, SecretSource, Source};
 use serde::{Deserialize, Serialize};
 
@@ -158,6 +160,7 @@ struct PersistSourceFoo;
 #[derive(SecretSource)]
 #[source(value(Foo), path("tests/secret.conf"), default([("key".to_owned(), Foo("value".to_owned()))]))]
 struct SecretSourceFoo;
+# }
 ```
 
 _For more examples, please refer to the [Example](examples) or [Documentation](https://docs.rs/encrypt_config)_

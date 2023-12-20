@@ -1,4 +1,4 @@
-#![doc = include_str!("../README.md")]
+#![doc = include_str!("../../README.md")]
 
 mod config;
 mod encrypt_utils;
@@ -6,9 +6,11 @@ mod error;
 mod source;
 
 pub use config::{Config, ConfigPatch, SecretConfigPatch};
-pub use encrypt_config_derive::*;
 pub use error::*;
 pub use source::{PersistSource, SecretSource, Source};
+
+#[cfg(feature = "derive")]
+pub use encrypt_config_derive::*;
 
 #[cfg(test)]
 mod tests {
@@ -38,7 +40,7 @@ mod tests {
 
         #[cfg(not(feature = "default_config_dir"))]
         fn path(&self) -> std::path::PathBuf {
-            std::path::PathBuf::from("tests").join("persist.conf")
+            std::path::PathBuf::from("../tests").join("persist.conf")
         }
 
         #[cfg(feature = "default_config_dir")]
@@ -53,7 +55,7 @@ mod tests {
 
         #[cfg(not(feature = "default_config_dir"))]
         fn path(&self) -> std::path::PathBuf {
-            std::path::PathBuf::from("tests").join("secret.conf")
+            std::path::PathBuf::from("../tests").join("secret.conf")
         }
 
         #[cfg(feature = "default_config_dir")]
