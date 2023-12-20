@@ -7,6 +7,7 @@ license.workspace = true
 edition.workspace = true
 repository.workspace = true
 
+
 [dependencies]
 snafu = { version = "0.7.5" }
 serde = { version = "1", optional = true }

@@ -11,5 +11,5 @@ edition = "2021"
 repository = "https://github.com/kingwingfly/encrypt-config"
 
 [workspace.dependencies]
-encrypt_config = { path = "encrypt-config", version = "0.0.1-alpha4" }
-encrypt_config_derive = { path = "encrypt-config-derive", version = "0.0.1-alpha4" }
+encrypt_config = { path = "encrypt-config", version = "^0.0.1-alpha3" }
+encrypt_config_derive = { path = "encrypt-config-derive", version = "^0.0.1-alpha3" }
