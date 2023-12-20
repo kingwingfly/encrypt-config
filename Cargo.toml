@@ -1,9 +1,9 @@
 [workspace]
-members = ["encrypt-config", "encrypt-config-derive", "tests"]
+members = ["encrypt-config", "encrypt-config-derive", "tests", "examples"]
 resolver = "2"
 
 [workspace.package]
-version = "0.0.1-alpha4"
+version = "0.0.1-alpha5"
 authors = ["Louis <836250617@qq.com>"]
 description = "A rust crate to manage, persist and encrypt your configurations."
 license = "MIT"

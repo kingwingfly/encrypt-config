@@ -17,6 +17,9 @@ dirs-next = { version = "2.0.0", optional = true }
 rand = "0.8.5"
 encrypt_config_derive = { workspace = true, optional = true }
 
+[package.metadata.docs.rs]
+features = ["derive"]
+
 [features]
 default = ["serde"]
 serde = ["dep:serde", "dep:serde_json"]
