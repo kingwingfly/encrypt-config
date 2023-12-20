@@ -53,8 +53,14 @@ pub trait Source {
 /// impl PersistSource for PersistSourceImpl {
 ///     type Value = Foo;
 ///
+///     #[cfg(not(feature = "default_config_dir"))]
 ///     fn path(&self) -> std::path::PathBuf {
 ///         std::path::PathBuf::from("tests").join("persist.conf")
+///     }
+///
+///     #[cfg(feature = "default_config_dir")]
+///     fn source_name(&self) -> String {
+///         "persist.conf".to_owned()
 ///     }
 /// }
 ///
@@ -130,8 +136,14 @@ pub trait PersistSource {
 /// impl SecretSource for SecretSourceImpl {
 ///     type Value = Foo;
 ///
+///     #[cfg(not(feature = "default_config_dir"))]
 ///     fn path(&self) -> std::path::PathBuf {
 ///         std::path::PathBuf::from("tests").join("secret.conf")
+///     }
+///
+///     #[cfg(feature = "default_config_dir")]
+///     fn source_name(&self) -> String {
+///         "secret.conf".to_owned()
 ///     }
 /// }
 ///
@@ -158,7 +170,6 @@ pub trait SecretSource {
     fn path(&self) -> std::path::PathBuf;
 
     /// Take effect only when the persisted config doesn't exists or cannnot be decrypted
-    #[cfg(not(feature = "default_config"))]
     fn default(&self) -> HashMap<String, Self::Value> {
         HashMap::new()
     }
