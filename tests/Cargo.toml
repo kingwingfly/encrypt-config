@@ -1,0 +1,18 @@
+[package]
+name = "tests"
+version.workspace = true
+edition = "2021"
+publish = false
+
+[dependencies]
+encrypt_config = { workspace = true, features = ["derive"] }
+
+[dev-dependencies]
+serde = "1"
+
+[[test]]
+name = "derive-test"
+path = "derive-test.rs"
+
+[features]
+default_config_dir = ["encrypt_config/default_config_dir"]
