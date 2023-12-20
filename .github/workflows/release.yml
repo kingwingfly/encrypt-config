@@ -10,6 +10,7 @@ env:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions: write-all
 
     steps:
       - uses: actions/checkout@v3
@@ -39,20 +40,30 @@ jobs:
       - name: Run tests with all features
         run: cargo test --all-features
 
+      # - name: publish crates
+      #   uses: katyo/publish-crates@v2
+      #   with:
+      #     # crates.io registry token
+      #     registry-token: ${{ secrets.crates_io }}
+
+      - name: publish crates dry run
+        run: |
+          cargo login ${{ secrets.crates_io }}
+          cargo publish -p encrypt_config --dry-run
+          cargo publish -p encrypt_config_derive --dry-run
+
       - name: publish crates
-        uses: katyo/publish-crates@v2
-        with:
-          # crates.io registry token
-          registry-token: ${{ secrets.crates_io }}
+        run: |
+          cargo publish -p encrypt_config
+          cargo publish -p encrypt_config_derive
 
       - name: Create Tag
         uses: actions/github-script@v6
         with:
           script: |
-            const {VERSION} = process.env
             github.rest.git.createRef({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                ref: `refs/tags/v${VERSION}`,
+                ref: 'refs/tags/v${{ steps.extract-version.outputs.VERSION }}',
                 sha: context.sha
             })

@@ -6,9 +6,17 @@ use syn::{parenthesized, parse_macro_input, DeriveInput, Expr, Ident, LitStr};
 /// # Example
 /// ```
 /// # use encrypt_config_derive::Source;
+/// # use serde::{Serialize, Deserialize};
 /// #[derive(Source)]
 /// #[source(default([("key".to_owned(), "value".to_owned())]))]
 /// struct SourceArray;
+///
+/// #[derive(Serialize, Deserialize, PartialEq, Debug)]
+/// struct Foo(String);
+///
+/// #[derive(Source)]
+/// #[source(value(Foo), default([("key".to_owned(), Foo("value".to_owned()))]))]
+/// struct SourceFoo;
 /// ```
 #[proc_macro_derive(Source, attributes(source))]
 pub fn derive_normal_source(input: TokenStream) -> TokenStream {
