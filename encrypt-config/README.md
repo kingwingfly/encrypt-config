@@ -137,7 +137,6 @@ assert_eq!(v, Foo("value".to_owned()));
 You can also use the derive macros.
 
 ```rust no_run
-// To derive [`Source`]
 # #[cfg(feature = "derive")]
 # {
 use encrypt_config::{PersistSource, SecretSource, Source};
@@ -146,6 +145,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 struct Foo(String);
 
+// To derive [`Source`]
 #[derive(Source)]
 #[source(value(Foo), default([("key".to_owned(), Foo("value".to_owned()))]))]
 struct SourceFoo;
