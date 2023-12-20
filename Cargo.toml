@@ -1,5 +1,8 @@
-[package]
-name = "encrypt-config"
+[workspace]
+members = ["encrypt-config", "encrypt-config-derive", "tests"]
+resolver = "2"
+
+[workspace.package]
 version = "0.0.1-alpha4"
 authors = ["Louis <836250617@qq.com>"]
 description = "A rust crate to manage, persist and encrypt your configurations."
@@ -7,26 +10,6 @@ license = "MIT"
 edition = "2021"
 repository = "https://github.com/kingwingfly/encrypt-config"
 
-[dependencies]
-snafu = { version = "0.7.5" }
-serde = { version = "1", optional = true }
-serde_json = { version = "1", optional = true }
-rsa = { version = "0.9.6", features = ["serde"] }
-keyring = "2.1.0"
-dirs-next = { version = "2.0.0", optional = true }
-rand = "0.8.5"
-encrypt-config-derive = { path = "encrypt-config-derive", version = "0.0.1-alpha4" }
-
-[profile.release]
-lto = true
-opt-level = 3
-codegen-units = 1
-
-[profile.dev]
-opt-level = 3
-
-[features]
-default = ["serde"]
-serde = ["dep:serde", "dep:serde_json"]
-default_config_dir = ["dep:dirs-next", "encrypt-config-derive/default_config_dir"]
-protobuf = []
+[workspace.dependencies]
+encrypt_config = { path = "./encrypt-config", version = "0.0.1-alpha3" }
+encrypt_config_derive = { path = "./encrypt-config-derive", version = "0.0.1-alpha4" }

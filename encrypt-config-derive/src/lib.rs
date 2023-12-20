@@ -5,14 +5,10 @@ use syn::{parenthesized, parse_macro_input, DeriveInput, Expr, Ident, LitStr};
 /// A derive macro helping implemente `Source` trait.
 /// # Example
 /// ```
-/// use encrypt_config::Source;
+/// # use encrypt_config_derive::Source;
 /// #[derive(Source)]
 /// #[source(default([("key".to_owned(), "value".to_owned())]))]
 /// struct SourceArray;
-/// assert_eq!(
-///     SourceArray.collect().unwrap(),
-///     HashMap::from([("key".to_owned(), "value".to_owned())])
-/// );
 /// ```
 #[proc_macro_derive(Source, attributes(source))]
 pub fn derive_normal_source(input: TokenStream) -> TokenStream {
@@ -87,12 +83,21 @@ pub fn derive_normal_source(input: TokenStream) -> TokenStream {
 /// A derive macro helping implemente `PersistSource` trait.
 /// # Example
 /// ```
-/// use encrypt_config::PersistSource;
+/// # use encrypt_config_derive::PersistSource;
+/// # use serde::{Serialize, Deserialize};
 /// #[derive(Serialize, Deserialize, PartialEq, Debug)]
 /// struct Foo(String);
 ///
+/// // If feature `default_config_dir` is off:
+/// # #[cfg(not(feature = "default_config_dir"))]
 /// #[derive(PersistSource)]
 /// #[source(value(Foo), path("tests/persist.conf"), default([("key".to_owned(), Foo("value".to_owned()))]))]
+/// struct SourceFoo;
+///
+/// // If feature `default_config_dir` is on:
+/// # #[cfg(feature = "default_config_dir")]
+/// #[derive(PersistSource)]
+/// #[source(value(Foo), source_name("secret.conf"), default([("key".to_owned(), Foo("value".to_owned()))]))]
 /// struct SourceFoo;
 /// ```
 #[proc_macro_derive(PersistSource, attributes(source))]
@@ -185,12 +190,21 @@ pub fn derive_persist_source(input: TokenStream) -> TokenStream {
 /// A derive macro helping implemente `SecretSource` trait.
 /// # Example
 /// ```
-/// use encrypt_config::SecretSource;
+/// # use encrypt_config_derive::SecretSource;
+/// # use serde::{Serialize, Deserialize};
 /// #[derive(Serialize, Deserialize, PartialEq, Debug)]
 /// struct Foo(String);
 ///
+/// // If feature `default_config_dir` is off:
+/// # #[cfg(not(feature = "default_config_dir"))]
 /// #[derive(SecretSource)]
 /// #[source(value(Foo), path("tests/secret.conf"), default([("key".to_owned(), Foo("value".to_owned()))]))]
+/// struct SourceFoo;
+///
+/// // If feature `default_config_dir` is on:
+/// # #[cfg(feature = "default_config_dir")]
+/// #[derive(SecretSource)]
+/// #[source(value(Foo), source_name("secret.conf"), default([("key".to_owned(), Foo("value".to_owned()))]))]
 /// struct SourceFoo;
 /// ```
 #[proc_macro_derive(SecretSource, attributes(source))]
