@@ -25,7 +25,7 @@
   <p align="center">
     A rust crate to manage, persist and encrypt your configurations.
     <br />
-    <a href="https://github.com/kingwingfly/encrypt-config"><strong>Explore the docs »</strong></a>
+    <a href="https://docs.rs/encrypt_config"><strong>Explore the docs »</strong></a>
     <br />
     <br />
     <a href="https://github.com/kingwingfly/encrypt-config">View Demo</a>
@@ -70,12 +70,12 @@ However, they usually have limitation on the secret length. For example, `Keycha
 
 Another solution is to store the secret in a file and encrypt it with a rsa public key, and store the private key in the OS' secret manager. This is what this crate does.
 
-In other cases, maybe our secret is not a `String`, but a config `struct`. We can also use this crate to manage it. When invoke `Config::get`, it will deserialize the config from the cache and return it.
+In other cases, maybe our secret is not a `String`, but a config `struct`. We can also use this crate to manage it. When invoke [`Config::get`], it will deserialize the config from the cache and return it.
 
 This crate provides 3 ways to manage your config:
-- `Source`: A normal source, not persisted or encrypted
-- `PersistSource`: A source that will be persisted to local file, not encrypted
-- `SecretSource`: A source that will be persisted to local file and encrypted
+- [`Source`]: A normal source, not persisted or encrypted
+- [`PersistSource`]: A source that will be persisted to local file, not encrypted
+- [`SecretSource`]: A source that will be persisted to local file and encrypted
 
 This crate also has some optional features:
 - `derive`: If enabled, you can use the derive macros to implement the `Source`, `PersistSource` and `SecretSource` trait.
@@ -99,7 +99,7 @@ This crate also has some optional features:
 ## Usage
 _(You may see many `#[cfg(feature = "...")]` in the example below, if you are not familar to Rust, you may not know this attribute is for `Conditinal Compile`, so that I can test it in `cargo test --all-features` automatically to ensure all go right.)_
 
-You can implement the `Source`, `PersistSource` and `SecretSource` yourself.
+You can implement the [`Source`], [`PersistSource`] and [`SecretSource`] yourself.
 ```rust no_run
 use encrypt_config::{Config, SecretSource};
 use serde::{Deserialize, Serialize};
@@ -164,7 +164,7 @@ struct SecretSourceFoo;
 # }
 ```
 
-_For more examples, please refer to the [Example](examples) or [Documentation](https://docs.rs/encrypt_config)_
+_For more examples, please refer to the [Example](encrypt-config/examples) or [Documentation](https://docs.rs/encrypt_config)_
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
