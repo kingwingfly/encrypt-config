@@ -96,6 +96,7 @@ This crate also has some optional features:
 
 <!-- USAGE EXAMPLES -->
 ## Usage
+You can implement the `Source`, `PersistSource` and `SecretSource` yourself.
 ```rust no_run
 use encrypt_config::{Config, SecretSource};
 use serde::{Deserialize, Serialize};
@@ -130,7 +131,32 @@ let v: Foo = config.get("key").unwrap();
 assert_eq!(v, Foo("value".to_owned()));
 ```
 
-_For more examples, please refer to the [Example](examples/example.rs) or [Documentation](https://docs.rs/encrypt_config)_
+You can also use the derive macros.
+
+```rust no_run
+// To derive [`Source`]
+use encrypt_config::{PersistSource, SecretSource, Source};
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+struct Foo(String);
+
+#[derive(Source)]
+#[source(value(Foo), default([("key".to_owned(), Foo("value".to_owned()))]))]
+struct SourceFoo;
+
+//To derive [`PersistSource`]
+#[derive(PersistSource)]
+#[source(value(Foo), path("tests/persist.conf"), default([("key".to_owned(), Foo("value".to_owned()))]))]
+struct PersistSourceFoo;
+
+// To derive [`SecretSource`]
+#[derive(SecretSource)]
+#[source(value(Foo), path("tests/secret.conf"), default([("key".to_owned(), Foo("value".to_owned()))]))]
+struct SecretSourceFoo;
+```
+
+_For more examples, please refer to the [Example](examples) or [Documentation](https://docs.rs/encrypt_config)_
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

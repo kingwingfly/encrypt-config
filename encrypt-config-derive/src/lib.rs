@@ -2,6 +2,18 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parenthesized, parse_macro_input, DeriveInput, Expr, Ident, LitStr};
 
+/// A derive macro helping implemente `Source` trait.
+/// # Example
+/// ```
+/// use encrypt_config::Source;
+/// #[derive(Source)]
+/// #[source(default([("key".to_owned(), "value".to_owned())]))]
+/// struct SourceArray;
+/// assert_eq!(
+///     SourceArray.collect().unwrap(),
+///     HashMap::from([("key".to_owned(), "value".to_owned())])
+/// );
+/// ```
 #[proc_macro_derive(Source, attributes(source))]
 pub fn derive_normal_source(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -47,7 +59,9 @@ pub fn derive_normal_source(input: TokenStream) -> TokenStream {
                         parenthesized!(content in meta.input);
                         source_name = content.parse().ok();
                     }
-                    _ => {}
+                    attr => {
+                        panic!("unknown attribute: {}", attr)
+                    }
                 }
             }
             Ok(())
@@ -70,6 +84,17 @@ pub fn derive_normal_source(input: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
+/// A derive macro helping implemente `PersistSource` trait.
+/// # Example
+/// ```
+/// use encrypt_config::PersistSource;
+/// #[derive(Serialize, Deserialize, PartialEq, Debug)]
+/// struct Foo(String);
+///
+/// #[derive(PersistSource)]
+/// #[source(value(Foo), path("tests/persist.conf"), default([("key".to_owned(), Foo("value".to_owned()))]))]
+/// struct SourceFoo;
+/// ```
 #[proc_macro_derive(PersistSource, attributes(source))]
 pub fn derive_persist_source(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -115,7 +140,9 @@ pub fn derive_persist_source(input: TokenStream) -> TokenStream {
                         parenthesized!(content in meta.input);
                         source_name = content.parse().ok();
                     }
-                    _ => {}
+                    attr => {
+                        panic!("unknown attribute: {}", attr)
+                    }
                 }
             }
             Ok(())
@@ -155,6 +182,17 @@ pub fn derive_persist_source(input: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
+/// A derive macro helping implemente `SecretSource` trait.
+/// # Example
+/// ```
+/// use encrypt_config::SecretSource;
+/// #[derive(Serialize, Deserialize, PartialEq, Debug)]
+/// struct Foo(String);
+///
+/// #[derive(SecretSource)]
+/// #[source(value(Foo), path("tests/secret.conf"), default([("key".to_owned(), Foo("value".to_owned()))]))]
+/// struct SourceFoo;
+/// ```
 #[proc_macro_derive(SecretSource, attributes(source))]
 pub fn derive_secret_source(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -200,7 +238,9 @@ pub fn derive_secret_source(input: TokenStream) -> TokenStream {
                         parenthesized!(content in meta.input);
                         source_name = content.parse().ok();
                     }
-                    _ => {}
+                    attr => {
+                        panic!("unknown attribute: {}", attr)
+                    }
                 }
             }
             Ok(())
