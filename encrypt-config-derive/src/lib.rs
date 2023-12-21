@@ -28,10 +28,6 @@ pub fn derive_normal_source(input: TokenStream) -> TokenStream {
 
     let mut default_expr: Expr = syn::parse_str("[]").unwrap();
     let mut value: Ident = syn::parse_str("String").unwrap();
-    #[cfg(not(feature = "default_config_dir"))]
-    let mut path: Option<LitStr> = None;
-    #[cfg(feature = "default_config_dir")]
-    let mut source_name: Option<LitStr> = None;
 
     if let Some(attr) = input
         .attrs
@@ -50,18 +46,6 @@ pub fn derive_normal_source(input: TokenStream) -> TokenStream {
                         let content;
                         parenthesized!(content in meta.input);
                         value = content.parse()?;
-                    }
-                    #[cfg(not(feature = "default_config_dir"))]
-                    "path" => {
-                        let content;
-                        parenthesized!(content in meta.input);
-                        path = content.parse().ok();
-                    }
-                    #[cfg(feature = "default_config_dir")]
-                    "source_name" => {
-                        let content;
-                        parenthesized!(content in meta.input);
-                        source_name = content.parse().ok();
                     }
                     attr => {
                         panic!("unknown attribute: {}", attr)
