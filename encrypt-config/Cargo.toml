@@ -11,18 +11,21 @@ repository.workspace = true
 snafu = { version = "0.7.5" }
 serde = { version = "1", optional = true }
 serde_json = { version = "1", optional = true }
-rsa = { version = "0.9.6", features = ["serde"] }
-keyring = "2.1.0"
+rsa = { version = "0.9.6", features = ["serde"], optional = true }
+keyring = { version = "2.1.0", optional = true }
+rand = { version = "0.8.5", optional = true }
 dirs-next = { version = "2.0.0", optional = true }
-rand = "0.8.5"
 encrypt_config_derive = { workspace = true, optional = true }
 
 [package.metadata.docs.rs]
 features = ["derive"]
 
 [features]
-default = ["serde"]
+default = ["serde", "encrypt", "save_on_change"]
 serde = ["dep:serde", "dep:serde_json"]
 derive = ["encrypt_config_derive"]
+encrypt = ["dep:rsa", "dep:rand", "dep:keyring", "persist"]
+persist = []
 default_config_dir = ["dep:dirs-next", "encrypt_config_derive/default_config_dir"]
 protobuf = []
+save_on_change = []

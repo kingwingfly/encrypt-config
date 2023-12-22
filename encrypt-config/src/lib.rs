@@ -1,13 +1,14 @@
 #![doc = include_str!("../README.md")]
 
 mod config;
+#[cfg(feature = "encrypt")]
 mod encrypt_utils;
 mod error;
 mod source;
 
-pub use config::{Config, ConfigPatch, SecretConfigPatch};
+pub use config::Config;
 pub use error::*;
-pub use source::{PersistSource, SecretSource, Source};
+pub use source::*;
 
 #[cfg(feature = "derive")]
 pub use encrypt_config_derive::*;
@@ -69,25 +70,13 @@ mod tests {
         let mut config = Config::new("test"); // Now it's empty
         config.add_source(NormalSource).unwrap();
         assert_eq!(config.get::<_, String>("key").unwrap(), "value");
-        let patch = NormalSource.upgrade("key", &"new value".to_owned());
-        patch.apply(&mut config).unwrap();
-        assert_eq!(config.get::<_, String>("key").unwrap(), "new value");
 
         config.add_persist_source(PersistSourceImpl).unwrap();
-        let new_value = Foo("hello".to_owned());
-        let patch = PersistSourceImpl.upgrade("persist", &new_value);
-        patch.apply(&mut config).unwrap();
-        assert_eq!(config.get::<_, Foo>("persist").unwrap(), new_value);
 
         let mut config_new = Config::new("test");
         config_new.add_persist_source(PersistSourceImpl).unwrap(); // Read config from disk
-        assert_eq!(config_new.get::<_, Foo>("persist").unwrap(), new_value);
 
         config.add_secret_source(SecretSourceImpl).unwrap();
-        let new_value = Foo("world".to_owned());
-        let patch = SecretSourceImpl.upgrade("secret", &new_value);
-        patch.apply(&mut config).unwrap();
-        assert_eq!(config.get::<_, Foo>("secret").unwrap(), new_value);
 
         std::fs::remove_file(PersistSourceImpl.path()).unwrap();
         std::fs::remove_file(SecretSourceImpl.path()).unwrap();

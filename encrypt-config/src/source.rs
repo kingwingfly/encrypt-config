@@ -1,4 +1,3 @@
-use crate::config::{ConfigPatch, SecretConfigPatch};
 use crate::encrypt_utils::Encrypter;
 use serde::{de::DeserializeOwned, Serialize};
 use std::collections::HashMap;
@@ -6,7 +5,7 @@ use std::collections::HashMap;
 /// A trait for normal config source that is neither encrypted or persisted.
 /// # Example
 /// ```no_run
-/// use encrypt_config::{Config, Source, ConfigResult};
+/// use encrypt_config::{Config, Source};
 ///
 /// let mut config = Config::new("test");
 ///
@@ -29,19 +28,12 @@ pub trait Source {
     type Map: IntoIterator<Item = (String, Self::Value)>;
 
     fn collect(&self) -> Result<Self::Map, Box<dyn std::error::Error>>;
-
-    fn upgrade(&self, key: impl AsRef<str>, new_value: &Self::Value) -> ConfigPatch {
-        let key = key.as_ref().to_owned();
-        let serded = serde_json::to_vec(&new_value).unwrap();
-        let func = Box::new(move || Ok((key, serded)));
-        ConfigPatch::new(func)
-    }
 }
 
 /// A trait for persisted but not encrypted config source.
 /// # Example
 /// ```no_run
-/// use encrypt_config::{Config, PersistSource, ConfigResult};
+/// use encrypt_config::{Config, PersistSource};
 /// use serde::{Deserialize, Serialize};
 ///
 /// let mut config = Config::new("test");
@@ -74,6 +66,7 @@ pub trait Source {
 /// config_new.add_persist_source(PersistSourceImpl).unwrap(); // Read config from disk
 /// assert_eq!(config_new.get::<_, Foo>("persist").unwrap(), new_value);
 /// ```
+#[cfg(feature = "persist")]
 pub trait PersistSource {
     type Value: Serialize + DeserializeOwned;
 
@@ -105,26 +98,12 @@ pub trait PersistSource {
                 .collect(),
         }
     }
-
-    fn upgrade(&self, key: impl AsRef<str>, new_value: &Self::Value) -> ConfigPatch {
-        let key = key.as_ref().to_owned();
-        let path = self.path();
-        let serded = serde_json::to_vec(new_value).unwrap();
-        let mut config = self.collect();
-
-        let func = Box::new(move || {
-            config.insert(key.clone(), serded.clone());
-            std::fs::write(path, serde_json::to_vec(&config).unwrap())?;
-            Ok((key, serded))
-        });
-        ConfigPatch::new(func)
-    }
 }
 
 /// A trait for persisted and encrypted config source.
 /// # Example
 /// ```no_run
-/// use encrypt_config::{Config, SecretSource, ConfigResult};
+/// use encrypt_config::{Config, SecretSource};
 /// use serde::{Deserialize, Serialize};
 ///
 /// let mut config = Config::new("test");
@@ -153,6 +132,7 @@ pub trait PersistSource {
 /// patch.apply(&mut config).unwrap();
 /// assert_eq!(config.get::<_, Foo>("secret").unwrap(), new_value);
 /// ```
+#[cfg(feature = "encrypt")]
 pub trait SecretSource {
     type Value: Serialize + DeserializeOwned;
 
@@ -185,22 +165,5 @@ pub trait SecretSource {
                 .map(|(k, v)| (k, serde_json::to_vec(&v).unwrap()))
                 .collect(),
         }
-    }
-
-    fn upgrade(&self, key: impl AsRef<str>, new_value: &Self::Value) -> SecretConfigPatch {
-        let key = key.as_ref().to_owned();
-        let path = self.path();
-        let serded = serde_json::to_vec(new_value).unwrap();
-        let func = Box::new(move |encrypter: &Encrypter| {
-            let mut decrtpted: HashMap<String, Vec<u8>> = match std::fs::read(&path) {
-                Ok(encrypted) => serde_json::from_slice(&encrypter.decrypt(&encrypted)?).unwrap(),
-                Err(_) => HashMap::new(),
-            };
-            decrtpted.insert(key.clone(), serded.clone());
-            let encrypted = encrypter.encrypt(&decrtpted)?;
-            std::fs::write(path, encrypted)?;
-            Ok((key, serded))
-        });
-        SecretConfigPatch::new(func)
     }
 }
