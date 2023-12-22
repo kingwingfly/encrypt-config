@@ -32,14 +32,8 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ steps.extract-version.outputs.VERSION }}
 
-      - name: Run clippy
-        run: cargo clippy --all-features --all-targets -- -D warnings
-
-      - name: Run all tests with default features
-        run: cargo test
-
-      - name: Run tests with all features
-        run: cargo test --all-features
+      - name: Run tests
+        run: .github/scripts/test.sh
 
       - name: publish crates dry run
         run: |
