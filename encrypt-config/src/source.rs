@@ -1,4 +1,4 @@
-use crate::encrypt_utils::Encrypter;
+use crate::{encrypt_utils::Encrypter, CollectFailed};
 use serde::{de::DeserializeOwned, Serialize};
 use std::collections::HashMap;
 
@@ -27,7 +27,16 @@ pub trait Source {
     type Value: Serialize + DeserializeOwned;
     type Map: IntoIterator<Item = (String, Self::Value)>;
 
-    fn collect(&self) -> Result<Self::Map, Box<dyn std::error::Error>>;
+    fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>>;
+
+    fn collect(&self) -> HashMap<String, Vec<u8>> {
+        self.default()
+            .map_err(|_| CollectFailed.build())
+            .unwrap()
+            .into_iter()
+            .map(|(k, v)| (k, serde_json::to_vec(&v).unwrap()))
+            .collect()
+    }
 }
 
 /// A trait for persisted but not encrypted config source.
@@ -69,6 +78,7 @@ pub trait Source {
 #[cfg(feature = "persist")]
 pub trait PersistSource {
     type Value: Serialize + DeserializeOwned;
+    type Map: IntoIterator<Item = (String, Self::Value)>;
 
     #[cfg(feature = "default_config_dir")]
     fn source_name(&self) -> String;
@@ -81,9 +91,7 @@ pub trait PersistSource {
     }
 
     /// Take effect only when the persisted config doesn't exists
-    fn default(&self) -> HashMap<String, Self::Value> {
-        HashMap::new()
-    }
+    fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>>;
 
     #[cfg(not(feature = "default_config_dir"))]
     fn path(&self) -> std::path::PathBuf;
@@ -93,6 +101,8 @@ pub trait PersistSource {
             Ok(serded) => serde_json::from_slice(&serded).unwrap(),
             Err(_) => self
                 .default()
+                .map_err(|_| CollectFailed.build())
+                .unwrap()
                 .into_iter()
                 .map(|(k, v)| (k, serde_json::to_vec(&v).unwrap()))
                 .collect(),
@@ -135,6 +145,7 @@ pub trait PersistSource {
 #[cfg(feature = "encrypt")]
 pub trait SecretSource {
     type Value: Serialize + DeserializeOwned;
+    type Map: IntoIterator<Item = (String, Self::Value)>;
 
     #[cfg(feature = "default_config_dir")]
     fn source_name(&self) -> String;
@@ -150,9 +161,7 @@ pub trait SecretSource {
     fn path(&self) -> std::path::PathBuf;
 
     /// Take effect only when the persisted config doesn't exists or cannnot be decrypted
-    fn default(&self) -> HashMap<String, Self::Value> {
-        HashMap::new()
-    }
+    fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>>;
 
     fn collect(&self, encrypter: &Encrypter) -> HashMap<String, Vec<u8>> {
         match std::fs::read(self.path()) {
@@ -161,6 +170,8 @@ pub trait SecretSource {
             }
             Err(_) => self
                 .default()
+                .map_err(|_| CollectFailed.build())
+                .unwrap()
                 .into_iter()
                 .map(|(k, v)| (k, serde_json::to_vec(&v).unwrap()))
                 .collect(),

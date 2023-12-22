@@ -62,7 +62,7 @@ pub fn derive_normal_source(input: TokenStream) -> TokenStream {
             type Value = #value;
             type Map = ::std::collections::HashMap<String, Self::Value>;
 
-            fn collect(&self) -> Result<Self::Map, Box<dyn std::error::Error>> {
+            fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>> {
                 Ok(#default_expr.into_iter().collect())
             }
         }
@@ -150,13 +150,15 @@ pub fn derive_persist_source(input: TokenStream) -> TokenStream {
     let expanded = quote! {
         impl #impl_generics encrypt_config::PersistSource for #name #ty_generics #where_clause {
             type Value = #value;
+            type Map = ::std::collections::HashMap<String, Self::Value>;
+
 
             fn path(&self) -> ::std::path::PathBuf {
                 ::std::path::PathBuf::from(#path)
             }
 
-            fn default(&self) -> ::std::collections::HashMap<String, Self::Value> {
-                #default_expr.into_iter().collect()
+            fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>> {
+                Ok(#default_expr.into_iter().collect())
             }
         }
     };
@@ -164,13 +166,15 @@ pub fn derive_persist_source(input: TokenStream) -> TokenStream {
     let expanded = quote! {
         impl #impl_generics encrypt_config::PersistSource for #name #ty_generics #where_clause {
             type Value = #value;
+            type Map = ::std::collections::HashMap<String, Self::Value>;
+
 
             fn source_name(&self) -> String {
                 #source_name.to_owned()
             }
 
-            fn default(&self) -> ::std::collections::HashMap<String, Self::Value> {
-                #default_expr.into_iter().collect()
+            fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>> {
+                Ok(#default_expr.into_iter().collect())
             }
         }
     };
@@ -257,13 +261,15 @@ pub fn derive_secret_source(input: TokenStream) -> TokenStream {
     let expanded = quote! {
         impl #impl_generics encrypt_config::SecretSource for #name #ty_generics #where_clause {
             type Value = #value;
+            type Map = ::std::collections::HashMap<String, Self::Value>;
+
 
             fn path(&self) -> ::std::path::PathBuf {
                 ::std::path::PathBuf::from(#path)
             }
 
-            fn default(&self) -> ::std::collections::HashMap<String, Self::Value> {
-                #default_expr.into_iter().collect()
+            fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>> {
+                Ok(#default_expr.into_iter().collect())
             }
         }
     };
@@ -271,13 +277,14 @@ pub fn derive_secret_source(input: TokenStream) -> TokenStream {
     let expanded = quote! {
         impl #impl_generics encrypt_config::SecretSource for #name #ty_generics #where_clause {
             type Value = #value;
+            type Map = ::std::collections::HashMap<String, Self::Value>;
 
             fn source_name(&self) -> String {
                 #source_name.to_owned()
             }
 
-            fn default(&self) -> ::std::collections::HashMap<String, Self::Value> {
-                #default_expr.into_iter().collect()
+            fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>> {
+                Ok(#default_expr.into_iter().collect())
             }
         }
     };

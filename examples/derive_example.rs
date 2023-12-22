@@ -10,7 +10,7 @@ fn derive_normal_test() {
     #[source(default(vec![("key".to_owned(), "value".to_owned())]))]
     struct SourceVec;
     assert_eq!(
-        SourceVec.collect().unwrap(),
+        SourceVec.default().unwrap(),
         HashMap::from([("key".to_owned(), "value".to_owned())])
     );
 
@@ -18,7 +18,7 @@ fn derive_normal_test() {
     #[source(default(HashMap::from([("key".to_owned(), "value".to_owned())])))]
     struct SourceHashMap;
     assert_eq!(
-        SourceHashMap.collect().unwrap(),
+        SourceVec.default().unwrap(),
         HashMap::from([("key".to_owned(), "value".to_owned())])
     );
 
@@ -26,7 +26,7 @@ fn derive_normal_test() {
     #[source(default([("key".to_owned(), "value".to_owned())]))]
     struct SourceArray;
     assert_eq!(
-        SourceArray.collect().unwrap(),
+        SourceVec.default().unwrap(),
         HashMap::from([("key".to_owned(), "value".to_owned())])
     );
 
@@ -36,7 +36,7 @@ fn derive_normal_test() {
     #[source(value(Foo), default([("key".to_owned(), Foo("value".to_owned()))]))]
     struct SourceFoo;
     assert_eq!(
-        SourceFoo.collect().unwrap(),
+        SourceFoo.default().unwrap(),
         HashMap::from([("key".to_owned(), Foo("value".to_owned()))])
     );
 }
@@ -47,7 +47,7 @@ fn derive_persist_test() {
     #[source(path("tests/persist.conf"), default([("key".to_owned(), "value".to_owned())]))]
     struct SourceArray;
     assert_eq!(
-        SourceArray.default(),
+        SourceArray.default().unwrap(),
         HashMap::from([("key".to_owned(), "value".to_owned())])
     );
 
@@ -58,7 +58,7 @@ fn derive_persist_test() {
     #[source(value(Foo), path("tests/persist.conf"), default([("key".to_owned(), Foo("value".to_owned()))]))]
     struct SourceFoo;
     assert_eq!(
-        SourceFoo.default(),
+        SourceFoo.default().unwrap(),
         HashMap::from([("key".to_owned(), Foo("value".to_owned()))])
     );
 }
@@ -69,7 +69,7 @@ fn derive_persist_test_default_coonfig_dir() {
     #[source(source_name("persist.conf"), default([("key".to_owned(), "value".to_owned())]))]
     struct SourceArray;
     assert_eq!(
-        SourceArray.default(),
+        SourceArray.default().unwrap(),
         HashMap::from([("key".to_owned(), "value".to_owned())])
     );
 }
@@ -80,7 +80,7 @@ fn derive_secret_test() {
     #[source(path("tests/secret.conf"), default([("key".to_owned(), "value".to_owned())]))]
     struct SourceArray;
     assert_eq!(
-        SourceArray.default(),
+        SourceArray.default().unwrap(),
         HashMap::from([("key".to_owned(), "value".to_owned())])
     );
 
@@ -91,7 +91,7 @@ fn derive_secret_test() {
     #[source(value(Foo), path("tests/secret.conf"), default([("key".to_owned(), Foo("value".to_owned()))]))]
     struct SourceFoo;
     assert_eq!(
-        SourceFoo.default(),
+        SourceFoo.default().unwrap(),
         HashMap::from([("key".to_owned(), Foo("value".to_owned()))])
     );
 }
@@ -102,7 +102,7 @@ fn derive_secret_test_default_coonfig_dir() {
     #[source(source_name("secret.conf"), default([("key".to_owned(), "value".to_owned())]))]
     struct SourceArray;
     assert_eq!(
-        SourceArray.default(),
+        SourceArray.default().unwrap(),
         HashMap::from([("key".to_owned(), "value".to_owned())])
     );
 }
