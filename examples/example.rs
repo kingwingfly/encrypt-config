@@ -48,14 +48,12 @@ fn config_tests() {
     let mut config = Config::new("test"); // Now it's empty
     config.add_source(NormalSource).unwrap();
     assert_eq!(config.get::<_, String>("key").unwrap(), "value");
-    let patch = NormalSource.upgrade("key", &"new value".to_owned());
-    patch.apply(&mut config).unwrap();
+
     assert_eq!(config.get::<_, String>("key").unwrap(), "new value");
 
     config.add_persist_source(PersistSourceImpl).unwrap();
     let new_value = Foo("hello".to_owned());
-    let patch = PersistSourceImpl.upgrade("persist", &new_value);
-    patch.apply(&mut config).unwrap();
+
     assert_eq!(config.get::<_, Foo>("persist").unwrap(), new_value);
 
     let mut config_new = Config::new("test");
@@ -64,13 +62,12 @@ fn config_tests() {
 
     config.add_secret_source(SecretSourceImpl).unwrap();
     let new_value = Foo("world".to_owned());
-    let patch = SecretSourceImpl.upgrade("secret", &new_value);
-    patch.apply(&mut config).unwrap();
     assert_eq!(config.get::<_, Foo>("secret").unwrap(), new_value);
 
     std::fs::remove_file("tests/persist.conf").unwrap();
     std::fs::remove_file("tests/secret.conf").unwrap();
 }
+
 fn main() {
     config_tests();
 }
