@@ -2,8 +2,7 @@
 //! This module provides a `Config` struct that can be used to store configuration values.
 
 use crate::{
-    encrypt_utils::Encrypter, CollectFailed, ConfigNotFound, ConfigResult, PersistSource,
-    SecretSource, Source,
+    encrypt_utils::Encrypter, ConfigNotFound, ConfigResult, PersistSource, SecretSource, Source,
 };
 use std::collections::HashMap;
 #[cfg(feature = "persist")]
@@ -73,15 +72,13 @@ impl Config {
         K: AsRef<str>,
         R: serde::de::DeserializeOwned,
     {
-        for (_, map) in self.cache.iter() {
-            if let Some(serded) = map.get(key.as_ref()) {
-                return Ok(serde_json::from_slice(serded).unwrap());
+        match self.cache.iter().find_map(|(_, map)| map.get(key.as_ref())) {
+            Some(serded) => Ok(serde_json::from_slice(serded).unwrap()),
+            None => Err(ConfigNotFound {
+                key: key.as_ref().to_owned(),
             }
+            .build()),
         }
-        Err(ConfigNotFound {
-            key: key.as_ref().to_owned(),
-        }
-        .build())
     }
 
     /// Get a value from the config.
@@ -104,13 +101,9 @@ impl Config {
     /// Add a source to the config.
     /// The source must implement [`Source`] trait, which is for normal config that does not need to be encrypted or persisted.
     pub fn add_source(&mut self, source: impl Source) -> ConfigResult<()> {
-        let patch = source
-            .collect()
-            .map_err(|_| CollectFailed.build())?
-            .into_iter()
-            .map(|(k, v)| (k, serde_json::to_vec(&v).unwrap()));
+        let patch = source.collect();
         #[cfg(feature = "persist")]
-        self.cache.push((Kind::Normal, patch.collect()));
+        self.cache.push((Kind::Normal, patch));
         #[cfg(not(feature = "persist"))]
         self.cache.extend(patch);
         Ok(())
@@ -148,11 +141,11 @@ impl Config {
         Ok(())
     }
 
-    pub fn upgrade_all<K, V, KV>(&mut self, kv: KV) -> ConfigResult<()>
+    pub fn upgrade_all<'v, K, V, KV>(&mut self, kv: KV) -> ConfigResult<()>
     where
         K: AsRef<str>,
-        V: serde::Serialize,
-        KV: IntoIterator<Item = (K, V)>,
+        V: serde::Serialize + 'v,
+        KV: IntoIterator<Item = (K, &'v V)>,
     {
         for (key, value) in kv {
             self.upgrade(key, value)?;
@@ -161,7 +154,7 @@ impl Config {
     }
 
     #[cfg(feature = "persist")]
-    pub fn upgrade<K, V>(&mut self, key: K, value: V) -> ConfigResult<()>
+    pub fn upgrade<K, V>(&mut self, key: K, value: &V) -> ConfigResult<()>
     where
         K: AsRef<str>,
         V: serde::Serialize,
@@ -175,18 +168,18 @@ impl Config {
                 let v = map.get_mut(key.as_ref()).unwrap();
                 match kind {
                     Kind::Normal => {
-                        *v = serde_json::to_vec(&value)?;
+                        *v = serde_json::to_vec(value)?;
                     }
                     Kind::Persist(file) => {
                         let mut file = file.write().unwrap();
-                        *v = serde_json::to_vec(&value)?;
+                        *v = serde_json::to_vec(value)?;
                         #[cfg(feature = "save_on_change")]
                         file.write(&serde_json::to_vec(&map)?)?;
                     }
                     #[cfg(feature = "encrypt")]
                     Kind::Secret(file) => {
                         let mut file = file.write().unwrap();
-                        *v = serde_json::to_vec(&value)?;
+                        *v = serde_json::to_vec(value)?;
                         #[cfg(feature = "save_on_change")]
                         file.write(&self.encrypter.encrypt(&map)?)?;
                     }
@@ -209,5 +202,10 @@ impl Config {
         let v = self.cache.get_mut(k.as_ref())?;
         *v = serde_json::to_vec(&v)?;
         Ok(())
+    }
+
+    #[cfg(not(feature = "save_on_change"))]
+    fn save(&self) -> ConfigResult<()> {
+        unimplemented!();
     }
 }
