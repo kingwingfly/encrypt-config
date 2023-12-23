@@ -19,5 +19,7 @@ encrypt_config = { workspace = true }
 proc-macro = true
 
 [features]
-default = []
+default = ["encrypt_config/derive"]
+persist = ["encrypt_config/persist"]
+secret = ["encrypt_config/secret"]
 default_config_dir = ["encrypt_config/default_config_dir"]

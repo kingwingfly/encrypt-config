@@ -1,20 +1,21 @@
-use crate::{encrypt_utils::Encrypter, CollectFailed};
 use serde::{de::DeserializeOwned, Serialize};
-use std::collections::HashMap;
 
 /// A trait for normal config source that is neither encrypted or persisted.
 /// # Example
 /// ```no_run
 /// use encrypt_config::{Config, Source};
 ///
+/// #[cfg(feature = "secret")]
 /// let mut config = Config::new("test");
+/// #[cfg(not(feature = "secret"))]
+/// let mut config = Config::new();
 ///
 /// struct NormalSource;
 /// impl Source for NormalSource {
 ///     type Value = String;
 ///     type Map = Vec<(String, Self::Value)>;
 ///
-///     fn collect(&self) -> Result<Self::Map, Box<dyn std::error::Error>> {
+///     fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>> {
 ///         Ok(vec![("key".to_owned(), "value".to_owned())])
 ///     }
 /// }
@@ -24,19 +25,15 @@ use std::collections::HashMap;
 /// assert_eq!(v, "value");
 /// ```
 pub trait Source {
+    /// The type of the config value
     type Value: Serialize + DeserializeOwned;
+    /// The type of the config map. It must be iterable, the first item of the tuple is the key, which should be `String` only.
     type Map: IntoIterator<Item = (String, Self::Value)>;
 
+    /// The default config values from this source.
+    /// This is the only way to add new config key-value pairs,
+    /// because we cannot infer the source type(`normal``, `persist`` and `secret``) of a new key after source merged into config if not so.
     fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>>;
-
-    fn collect(&self) -> HashMap<String, Vec<u8>> {
-        self.default()
-            .map_err(|_| CollectFailed.build())
-            .unwrap()
-            .into_iter()
-            .map(|(k, v)| (k, serde_json::to_vec(&v).unwrap()))
-            .collect()
-    }
 }
 
 /// A trait for persisted but not encrypted config source.
@@ -45,7 +42,10 @@ pub trait Source {
 /// use encrypt_config::{Config, PersistSource};
 /// use serde::{Deserialize, Serialize};
 ///
+/// #[cfg(feature = "secret")]
 /// let mut config = Config::new("test");
+/// #[cfg(not(feature = "secret"))]
+/// let mut config = Config::new();
 ///
 /// #[derive(Serialize, Deserialize, PartialEq, Debug)]
 /// struct Foo(String);
@@ -53,6 +53,7 @@ pub trait Source {
 /// struct PersistSourceImpl;
 /// impl PersistSource for PersistSourceImpl {
 ///     type Value = Foo;
+///     type Map = Vec<(String, Self::Value)>;
 ///
 ///     #[cfg(not(feature = "default_config_dir"))]
 ///     fn path(&self) -> std::path::PathBuf {
@@ -63,26 +64,44 @@ pub trait Source {
 ///     fn source_name(&self) -> String {
 ///         "persist.conf".to_owned()
 ///     }
+///
+///     fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>> {
+///         Ok(vec![("persist".to_owned(), Foo("persist".to_owned()))])
+///     }
 /// }
 ///
 /// config.add_persist_source(PersistSourceImpl).unwrap();
-/// let new_value = Foo("hello".to_owned());
-/// let patch = PersistSourceImpl.upgrade("persist", &new_value);
-/// patch.apply(&mut config).unwrap();
+/// let new_value = Foo("new persist".to_owned());
+/// config.upgrade("persist", &new_value).unwrap();
 /// assert_eq!(config.get::<_, Foo>("persist").unwrap(), new_value);
 ///
+/// #[cfg(feature = "secret")]
 /// let mut config_new = Config::new("test");
+/// #[cfg(not(feature = "secret"))]
+/// let mut config_new = Config::new();
+///
 /// config_new.add_persist_source(PersistSourceImpl).unwrap(); // Read config from disk
 /// assert_eq!(config_new.get::<_, Foo>("persist").unwrap(), new_value);
 /// ```
 #[cfg(feature = "persist")]
 pub trait PersistSource {
+    /// The type of the config value
     type Value: Serialize + DeserializeOwned;
+    /// The type of the config map. It must be iterable, the first item of the tuple is the key, which should be `String` only.
     type Map: IntoIterator<Item = (String, Self::Value)>;
 
+    /// The default config values from this source.
+    /// This is the only way to add new config key-value pairs,
+    /// because we cannot infer the source type(`normal``, `persist`` and `secret``) of a new key after source merged into config if not so.
+    fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>>;
+
+    /// The name of the config file. Its parent directory is the OS' default config directory.
+    /// It will be used as the file name if feature `default_config_dir` is on.
     #[cfg(feature = "default_config_dir")]
     fn source_name(&self) -> String;
 
+    /// The path to persist the config file. Using the OS' default config directory.
+    /// It will be used as the file path if feature `default_config_dir` is on.
     #[cfg(feature = "default_config_dir")]
     fn path(&self) -> std::path::PathBuf {
         dirs_next::config_dir()
@@ -90,24 +109,9 @@ pub trait PersistSource {
             .join(self.source_name())
     }
 
-    /// Take effect only when the persisted config doesn't exists
-    fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>>;
-
+    /// The path to persist the config file.
     #[cfg(not(feature = "default_config_dir"))]
     fn path(&self) -> std::path::PathBuf;
-
-    fn collect(&self) -> HashMap<String, Vec<u8>> {
-        match std::fs::read(self.path()) {
-            Ok(serded) => serde_json::from_slice(&serded).unwrap(),
-            Err(_) => self
-                .default()
-                .map_err(|_| CollectFailed.build())
-                .unwrap()
-                .into_iter()
-                .map(|(k, v)| (k, serde_json::to_vec(&v).unwrap()))
-                .collect(),
-        }
-    }
 }
 
 /// A trait for persisted and encrypted config source.
@@ -124,6 +128,7 @@ pub trait PersistSource {
 /// struct SecretSourceImpl;
 /// impl SecretSource for SecretSourceImpl {
 ///     type Value = Foo;
+///     type Map = Vec<(String, Self::Value)>;
 ///
 ///     #[cfg(not(feature = "default_config_dir"))]
 ///     fn path(&self) -> std::path::PathBuf {
@@ -134,22 +139,37 @@ pub trait PersistSource {
 ///     fn source_name(&self) -> String {
 ///         "secret.conf".to_owned()
 ///     }
+///
+///     fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>> {
+///         Ok(vec![("secret".to_owned(), Foo("secret".to_owned()))])
+///     }
 /// }
 ///
 /// config.add_secret_source(SecretSourceImpl).unwrap();
-/// let new_value = Foo("world".to_owned());
-/// let patch = SecretSourceImpl.upgrade("secret", &new_value);
-/// patch.apply(&mut config).unwrap();
+/// assert_eq!(config.get::<_, Foo>("secret").unwrap(), Foo("secret".to_owned()));
+/// let new_value = Foo("new secret".to_owned());
+/// config.upgrade("secret", &new_value).unwrap();
 /// assert_eq!(config.get::<_, Foo>("secret").unwrap(), new_value);
 /// ```
-#[cfg(feature = "encrypt")]
+#[cfg(feature = "secret")]
 pub trait SecretSource {
+    /// The type of the config value
     type Value: Serialize + DeserializeOwned;
+    /// The type of the config map. It must be iterable, the first item of the tuple is the key, which should be `String` only.
     type Map: IntoIterator<Item = (String, Self::Value)>;
 
+    /// The default config values from this source.
+    /// This is the only way to add new config key-value pairs,
+    /// because we cannot infer the source type(`normal``, `persist`` and `secret``) of a new key after source merged into config if not so.
+    fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>>;
+
+    /// The name of the config file. Its parent directory is the OS' default config directory.
+    /// It will be used as the file name if feature `default_config_dir` is on.
     #[cfg(feature = "default_config_dir")]
     fn source_name(&self) -> String;
 
+    /// The path to persist the config file. Using the OS' default config directory.
+    /// It will be used as the file path if feature `default_config_dir` is on.
     #[cfg(feature = "default_config_dir")]
     fn path(&self) -> std::path::PathBuf {
         dirs_next::config_dir()
@@ -157,24 +177,7 @@ pub trait SecretSource {
             .join(self.source_name())
     }
 
+    /// The path to persist the config file.
     #[cfg(not(feature = "default_config_dir"))]
     fn path(&self) -> std::path::PathBuf;
-
-    /// Take effect only when the persisted config doesn't exists or cannnot be decrypted
-    fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>>;
-
-    fn collect(&self, encrypter: &Encrypter) -> HashMap<String, Vec<u8>> {
-        match std::fs::read(self.path()) {
-            Ok(encrypted) => {
-                serde_json::from_slice(&encrypter.decrypt(&encrypted).unwrap()).unwrap()
-            }
-            Err(_) => self
-                .default()
-                .map_err(|_| CollectFailed.build())
-                .unwrap()
-                .into_iter()
-                .map(|(k, v)| (k, serde_json::to_vec(&v).unwrap()))
-                .collect(),
-        }
-    }
 }
