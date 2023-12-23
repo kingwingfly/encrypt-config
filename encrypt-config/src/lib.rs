@@ -1,5 +1,6 @@
 #![doc = include_str!("../README.md")]
-#![deny(missing_docs)]
+#![deny(missing_docs, rustdoc::broken_intra_doc_links)]
+
 #[cfg(all(not(feature = "persist"), feature = "default_config_dir"))]
 compile_error!("Feature `default_config_dir` only works with feature `persist` on.");
 #[cfg(all(not(feature = "secret"), feature = "mock"))]
