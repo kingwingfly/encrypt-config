@@ -24,12 +24,12 @@ jobs:
 
       - name: publish crates dry run
         run: |
+          cargo login ${{ secrets.crates_io }}
           cargo publish -p encrypt_config_derive --dry-run
-          cargo package -p encrypt_config --dry-run
+          cargo publish -p encrypt_config --dry-run
 
       - name: publish crates
         run: |
-          cargo login ${{ secrets.crates_io }}
           cargo publish -p encrypt_config_derive
           cargo publish -p encrypt_config
 
