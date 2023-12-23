@@ -101,6 +101,8 @@ _(You may see many `#[cfg(feature = "...")]` in the example below, if you are no
 
 You can implement the [`Source`], [`PersistSource`] and [`SecretSource`] yourself.
 ```rust no_run
+# #[cfg(feature = "secret")]
+# {
 use encrypt_config::{Config, SecretSource};
 use serde::{Deserialize, Serialize};
 
@@ -111,33 +113,41 @@ struct SecretSourceImpl;
 
 // impl `SecectSource` trait for `SecretSourceImpl`
 impl SecretSource for SecretSourceImpl {
-    type Value = Foo;
+	type Value = Foo;
+	type Map = Vec<(String, Self::Value)>;
 
-    #[cfg(not(feature = "default_config_dir"))]
-    fn path(&self) -> std::path::PathBuf {
-        std::path::PathBuf::from("tests").join("secret.conf")
-    }
+	#[cfg(not(feature = "default_config_dir"))]
+	fn path(&self) -> std::path::PathBuf {
+		std::path::PathBuf::from("../tests").join("secret.conf")
+	}
 
-    #[cfg(feature = "default_config_dir")]
-    fn source_name(&self) -> String {
-        "secret.conf".to_owned()
-    }
+	#[cfg(feature = "default_config_dir")]
+	fn source_name(&self) -> String {
+		"secret.conf".to_owned()
+	}
+
+	fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>> {
+		Ok(vec![("secret".to_owned(), Foo("secret".to_owned()))])
+	}
 }
 
-let mut config = Config::new("test"); // `test` is the name of rsa private key in OS' secret manager
-config.add_secret_source(SecretSourceImpl).unwrap();  // This will read and decrypt the config from local storage. However, it is empty now.
+let mut config = Config::new("test"); // Now it's empty
+let expect = Foo("secret".to_owned());
+config.add_secret_source(SecretSourceImpl).unwrap();
+assert_eq!(config.get::<_, Foo>("secret").unwrap(), expect);
 
-let new_value = Foo("value".to_owned());
-let patch = SecretSourceImpl.upgrade("key", &new_value); // `upgrade` will return a `Patch`
-patch.apply(&mut config).unwrap(); // No change will happen until the `Patch` is applied
-let v: Foo = config.get("key").unwrap();
-assert_eq!(v, Foo("value".to_owned()));
+let new_expect2 = Foo("new secret".to_owned());
+assert_eq!(config.get::<_, Foo>("secret").unwrap(), new_expect2);
+let mut config_new = Config::new("test");
+config_new.add_secret_source(SecretSourceImpl).unwrap(); // Read secret config from disk
+assert_eq!(config_new.get::<_, Foo>("secret").unwrap(), new_expect2); // The persist source is brought back
+# }
 ```
 
 You can also use the derive macros.
 
 ```rust no_run
-# #[cfg(feature = "derive")]
+# #[cfg(all(feature = "derive", feature = "secret"))]
 # {
 use encrypt_config::{PersistSource, SecretSource, Source};
 use serde::{Deserialize, Serialize};

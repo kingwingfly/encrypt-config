@@ -1,22 +1,46 @@
 [package]
 name = "examples"
 version.workspace = true
-edition = "2021"
+edition.workspace = true
 publish = false
 
-[dependencies]
-encrypt_config = { workspace = true, features = ["derive"] }
-
 [dev-dependencies]
+encrypt_config = { workspace = true }
 serde = "1"
 
 [[example]]
-name = "example"
-path = "example.rs"
+name = "impl_normal_example"
+path = "impl_normal_example.rs"
 
 [[example]]
-name = "derive_example"
-path = "derive_example.rs"
+name = "impl_persist_example"
+path = "impl_persist_example.rs"
+required-features = ["persist"]
+
+[[example]]
+name = "impl_secret_example"
+path = "impl_secret_example.rs"
+required-features = ["secret"]
+
+[[example]]
+name = "derive_normal_example"
+path = "derive_normal_example.rs"
+required-features = ["derive"]
+
+[[example]]
+name = "derive_persist_example"
+path = "derive_persist_example.rs"
+required-features = ["persist", "derive"]
+
+[[example]]
+name = "derive_secret_example"
+path = "derive_secret_example.rs"
+required-features = ["secret", "derive"]
 
 [features]
+default = []
+full = ["persist", "secret", "derive"]
+derive = ["encrypt_config/derive"]
 default_config_dir = ["encrypt_config/default_config_dir"]
+persist = ["encrypt_config/persist"]
+secret = ["encrypt_config/secret"]
