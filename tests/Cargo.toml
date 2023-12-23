@@ -25,7 +25,6 @@ required-features = ["derive", "secret"]
 
 [features]
 default = []
-full = ["persist", "secret", "derive"]
 derive = ["encrypt_config/derive"]
 default_config_dir = ["encrypt_config/default_config_dir"]
 persist = ["encrypt_config/persist"]

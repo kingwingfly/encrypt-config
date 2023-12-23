@@ -3,7 +3,7 @@ members = ["encrypt-config", "encrypt-config-derive", "tests", "examples"]
 resolver = "2"
 
 [workspace.package]
-version = "0.0.1-alpha6"
+version = "0.0.1"
 authors = ["Louis <836250617@qq.com>"]
 description = "A rust crate to manage, persist and encrypt your configurations."
 license = "MIT"
@@ -11,8 +11,8 @@ edition = "2021"
 repository = "https://github.com/kingwingfly/encrypt-config"
 
 [workspace.dependencies]
-encrypt_config = { path = "encrypt-config", version = "0.0.1-alpha6" }
-encrypt_config_derive = { path = "encrypt-config-derive", version = "0.0.1-alpha6" }
+encrypt_config = { path = "encrypt-config" }
+encrypt_config_derive = { path = "encrypt-config-derive", version = "0.0.1" }
 
 [profile.dev]
 opt-level = 3
