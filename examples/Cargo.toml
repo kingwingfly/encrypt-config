@@ -11,6 +11,7 @@ serde = "1"
 [[example]]
 name = "impl_normal_example"
 path = "impl_normal_example.rs"
+required-features = ["normal"]
 
 [[example]]
 name = "impl_persist_example"
@@ -39,8 +40,8 @@ required-features = ["secret", "derive"]
 
 [features]
 default = []
-full = ["persist", "secret", "derive"]
 derive = ["encrypt_config/derive"]
 default_config_dir = ["encrypt_config/default_config_dir"]
-persist = ["encrypt_config/persist"]
-secret = ["encrypt_config/secret"]
+normal = []
+persist = ["encrypt_config/persist", "normal"]
+secret = ["encrypt_config/secret", "persist"]
