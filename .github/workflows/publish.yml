@@ -25,13 +25,13 @@ jobs:
       - name: publish crates dry run
         run: |
           cargo login ${{ secrets.crates_io }}
-          cargo publish --features full -p encrypt_config --dry-run
-          cargo publish --features full -p encrypt_config_derive --dry-run
+          cargo publish -p encrypt_config --dry-run
+          cargo publish -p encrypt_config_derive --dry-run
 
       - name: publish crates
         run: |
-          cargo publish --features full -p encrypt_config
-          cargo publish --features full -p encrypt_config_derive
+          cargo publish -p encrypt_config
+          cargo publish -p encrypt_config_derive
 
       - name: Create Tag
         uses: actions/github-script@v6
