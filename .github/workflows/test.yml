@@ -31,8 +31,9 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ steps.extract-version.outputs.VERSION }}
 
-      - name: Run tests
-        run: .github/scripts/test.sh
+      - name: Run build
+        if: steps.cache-cargo-restore.outputs.cache-hit != 'true'
+        run: cargo build --all-features --all-targets
 
       - name: Cache save
         if: steps.cache-cargo-restore.outputs.cache-hit != 'true'
@@ -46,3 +47,6 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ steps.cache-cargo-restore.outputs.cache-primary-key }}
+
+      - name: Run tests
+        run: .github/scripts/test.sh
