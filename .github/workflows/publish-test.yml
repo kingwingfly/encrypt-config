@@ -38,8 +38,8 @@ jobs:
       - name: publish crates dry run
         run: |
           cargo login ${{ secrets.crates_io }}
-          cargo publish -p encrypt_config --dry-run
-          cargo publish -p encrypt_config_derive --dry-run
+          cargo publish --features full -p encrypt_config --dry-run
+          cargo publish --features full -p encrypt_config_derive --dry-run
 
       - name: Cache save
         if: steps.cache-cargo-restore.outputs.cache-hit != 'true'

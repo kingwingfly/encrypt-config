@@ -6,6 +6,7 @@ description.workspace = true
 license.workspace = true
 edition.workspace = true
 repository.workspace = true
+metadata.docs.rs.features = ["full"]
 
 [dependencies]
 snafu = { version = "0.7.5" }
@@ -17,14 +18,9 @@ rand = { version = "0.8.5", optional = true }
 dirs-next = { version = "2.0.0", optional = true }
 encrypt_config_derive = { workspace = true, optional = true }
 
-[package.metadata.docs.rs]
-all-features = true
-targets = ["x86_64-unknown-linux-gnu"]
-rustdoc-args = ["--cfg", "doc_cfg", "--generate-link-to-definition"]
-
 [features]
 default = ["serde", "save_on_change"]
-full = ["serde", "persist", "secret", "save_on_change", "derive"]
+full = ["default", "persist", "secret", "derive"]
 serde = ["dep:serde", "dep:serde_json"]
 derive = ["dep:encrypt_config_derive"]
 secret = ["dep:rsa", "dep:rand", "dep:keyring", "persist", "encrypt_config_derive?/secret"]
