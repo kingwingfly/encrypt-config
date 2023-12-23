@@ -1,17 +1,22 @@
+#[cfg(all(not(feature = "persist"), feature = "default_config_dir"))]
+compile_error!("Feature `default_config_dir` only works with feature `persist` on.");
+
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parenthesized, parse_macro_input, DeriveInput, Expr, Ident, LitStr};
+#[cfg(feature = "persist")]
+use syn::LitStr;
+use syn::{parenthesized, parse_macro_input, DeriveInput, Expr, Ident};
 
 /// A derive macro helping implemente `Source` trait.
 /// # Example
 /// ```
-/// # use encrypt_config_derive::Source;
+/// # use encrypt_config::Source;
 /// # use serde::{Serialize, Deserialize};
 /// #[derive(Source)]
 /// #[source(default([("key".to_owned(), "value".to_owned())]))]
 /// struct SourceArray;
 ///
-/// #[derive(Serialize, Deserialize, PartialEq, Debug)]
+/// #[derive(Serialize, Deserialize)]
 /// struct Foo(String);
 ///
 /// #[derive(Source)]
@@ -48,7 +53,7 @@ pub fn derive_normal_source(input: TokenStream) -> TokenStream {
                         value = content.parse()?;
                     }
                     attr => {
-                        panic!("unknown attribute: {}", attr)
+                        panic!("This macro only supports the `default` and `value` attributes, but got {}", attr);
                     }
                 }
             }
@@ -75,9 +80,9 @@ pub fn derive_normal_source(input: TokenStream) -> TokenStream {
 /// A derive macro helping implemente `PersistSource` trait.
 /// # Example
 /// ```
-/// # use encrypt_config_derive::PersistSource;
+/// # use encrypt_config::PersistSource;
 /// # use serde::{Serialize, Deserialize};
-/// #[derive(Serialize, Deserialize, PartialEq, Debug)]
+/// #[derive(Serialize, Deserialize)]
 /// struct Foo(String);
 ///
 /// // If feature `default_config_dir` is off:
@@ -92,6 +97,7 @@ pub fn derive_normal_source(input: TokenStream) -> TokenStream {
 /// #[source(value(Foo), source_name("secret.conf"), default([("key".to_owned(), Foo("value".to_owned()))]))]
 /// struct SourceFoo;
 /// ```
+#[cfg(feature = "persist")]
 #[proc_macro_derive(PersistSource, attributes(source))]
 pub fn derive_persist_source(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -138,7 +144,14 @@ pub fn derive_persist_source(input: TokenStream) -> TokenStream {
                         source_name = content.parse().ok();
                     }
                     attr => {
-                        panic!("unknown attribute: {}", attr)
+                        #[cfg(not(feature = "default_config_dir"))]
+                        panic!(
+                            "This macro only support `default`, `value` and `path` attribute, but got {}", attr
+                        );
+                        #[cfg(feature = "default_config_dir")]
+                        panic!(
+                            "This macro only support `default`, `value` and `source_name` attribute, but got {}", attr
+                        );
                     }
                 }
             }
@@ -151,7 +164,6 @@ pub fn derive_persist_source(input: TokenStream) -> TokenStream {
         impl #impl_generics encrypt_config::PersistSource for #name #ty_generics #where_clause {
             type Value = #value;
             type Map = ::std::collections::HashMap<String, Self::Value>;
-
 
             fn path(&self) -> ::std::path::PathBuf {
                 ::std::path::PathBuf::from(#path)
@@ -167,7 +179,6 @@ pub fn derive_persist_source(input: TokenStream) -> TokenStream {
         impl #impl_generics encrypt_config::PersistSource for #name #ty_generics #where_clause {
             type Value = #value;
             type Map = ::std::collections::HashMap<String, Self::Value>;
-
 
             fn source_name(&self) -> String {
                 #source_name.to_owned()
@@ -186,9 +197,9 @@ pub fn derive_persist_source(input: TokenStream) -> TokenStream {
 /// A derive macro helping implemente `SecretSource` trait.
 /// # Example
 /// ```
-/// # use encrypt_config_derive::SecretSource;
+/// # use encrypt_config::SecretSource;
 /// # use serde::{Serialize, Deserialize};
-/// #[derive(Serialize, Deserialize, PartialEq, Debug)]
+/// #[derive(Serialize, Deserialize)]
 /// struct Foo(String);
 ///
 /// // If feature `default_config_dir` is off:
@@ -203,6 +214,7 @@ pub fn derive_persist_source(input: TokenStream) -> TokenStream {
 /// #[source(value(Foo), source_name("secret.conf"), default([("key".to_owned(), Foo("value".to_owned()))]))]
 /// struct SourceFoo;
 /// ```
+#[cfg(feature = "secret")]
 #[proc_macro_derive(SecretSource, attributes(source))]
 pub fn derive_secret_source(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -249,7 +261,14 @@ pub fn derive_secret_source(input: TokenStream) -> TokenStream {
                         source_name = content.parse().ok();
                     }
                     attr => {
-                        panic!("unknown attribute: {}", attr)
+                        #[cfg(not(feature = "default_config_dir"))]
+                        panic!(
+                            "This macro only support `default`, `value` and `path` attribute, but got {}", attr
+                        );
+                        #[cfg(feature = "default_config_dir")]
+                        panic!(
+                            "This macro only support `default`, `value` and `source_name` attribute, but got {}", attr
+                        );
                     }
                 }
             }

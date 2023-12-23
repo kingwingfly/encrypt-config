@@ -1,31 +1,65 @@
 use snafu::Snafu;
 
+/// The Error types of `encrypt config`, which is implemented by [`snafu`].
 #[derive(Snafu, Debug)]
 #[snafu(visibility(pub(crate)), context(suffix(false)))]
 pub enum ConfigError {
+    /// This error will be returned when the key is not found in the config.
     #[snafu(display("The key `{}` not found in Config", key))]
-    ConfigNotFound { key: String },
+    ConfigNotFound {
+        /// The key which is not found in the config.
+        key: String,
+    },
+    /// This error will be returned when the value cannot seriliazed or deserialized.
     #[snafu(
-        display("Failed to deseriliaze encrypter from keyring."),
+        display("Serde Error. Cannot seriliaze or deseriliaze."),
         context(false)
     )]
-    LoadEncrypterFailed { source: serde_json::Error },
+    SerdeError {
+        /// The error returned by `serde_json`.
+        source: serde_json::Error,
+    },
+    /// This error will be returned when the encrypter cannot be deserialized from keyring password. This may caused by the private key stored in keyring being incorrect, modified or recreated.
+    #[snafu(display("Failed to deseriliaze encrypter from keyring."))]
+    LoadEncrypterFailed {
+        /// The error returned by `serde_json`.
+        source: serde_json::Error,
+    },
+    #[cfg(feature = "secret")]
+    /// This error will be returned when the OS' secret manager cannot be accessed.
     #[snafu(
         display(
             "Keyring Error.\nThis error may caused by OS' secret manager, the rsa private key cannot be saved or read."
         ),
         context(false)
     )]
-    KeyringError { source: keyring::Error },
+    KeyringError {
+        /// The error returned by `keyring`.
+        source: keyring::Error,
+    },
+    /// This error will be returned when the encryption or decryption failed.
     #[snafu(
         display("Encryption Error. Cannot encrypt or decrypt.\nIf it's a decrypt error, maybe it's the private key stored in keyring being incorrect, modified or recreated."),
         context(false)
     )]
-    EncryptionError { source: rsa::Error },
+    #[cfg(feature = "secret")]
+    EncryptionError {
+        /// The error returned by `rsa`.
+        source: rsa::Error,
+    },
+    /// This error will be returned when the config cannot be saved to or read from the file.
     #[snafu(display("IO error. Cannot operate the file."), context(false))]
-    IoError { source: std::io::Error },
+    IoError {
+        /// The error returned by `std::io`.
+        source: std::io::Error,
+    },
+    /// This error will be returned when the config cannot be collected from the source or the default value.
     #[snafu(display("Cannot collect from Source"))]
     CollectFailed,
+    // /// This error will be returned when the mock encrypter built failed.
+    // #[snafu(display("Connot mock encrypter."))]
+    // MockEncrypterFailed,
 }
 
+/// The Result type of `encrypt config`, which is implemented by [`snafu`].
 pub type ConfigResult<T> = Result<T, ConfigError>;

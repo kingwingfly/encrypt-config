@@ -1,18 +1,32 @@
 [package]
 name = "tests"
 version.workspace = true
-edition = "2021"
+edition.workspace = true
 publish = false
 
-[dependencies]
-encrypt_config = { workspace = true, features = ["derive"]  }
-
 [dev-dependencies]
+encrypt_config = { workspace = true }
 serde = "1"
 
 [[test]]
-name = "derive-test"
-path = "derive-test.rs"
+name = "derive_normal_test"
+path = "derive_normal_test.rs"
+required-features = ["derive"]
+
+[[test]]
+name = "derive_persist_test"
+path = "derive_persist_test.rs"
+required-features = ["derive", "persist"]
+
+[[test]]
+name = "derive_secret_test"
+path = "derive_secret_test.rs"
+required-features = ["derive", "secret"]
 
 [features]
+default = []
+full = ["persist", "secret", "derive"]
+derive = ["encrypt_config/derive"]
 default_config_dir = ["encrypt_config/default_config_dir"]
+persist = ["encrypt_config/persist"]
+secret = ["encrypt_config/secret"]
