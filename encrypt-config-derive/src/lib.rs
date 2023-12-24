@@ -41,15 +41,13 @@ pub fn derive_normal_source(input: TokenStream) -> TokenStream {
     {
         attr.parse_nested_meta(|meta| {
             if let Some(i) = meta.path.get_ident() {
+                let content;
+                parenthesized!(content in meta.input);
                 match i.to_string().as_str() {
                     "default" => {
-                        let content;
-                        parenthesized!(content in meta.input);
                         default_expr = content.parse()?;
                     }
                     "value" => {
-                        let content;
-                        parenthesized!(content in meta.input);
                         value = content.parse()?;
                     }
                     attr => {
@@ -120,27 +118,21 @@ pub fn derive_persist_source(input: TokenStream) -> TokenStream {
     {
         attr.parse_nested_meta(|meta| {
             if let Some(i) = meta.path.get_ident() {
+                let content;
+                parenthesized!(content in meta.input);
                 match i.to_string().as_str() {
                     "default" => {
-                        let content;
-                        parenthesized!(content in meta.input);
                         default_expr = content.parse()?;
                     }
                     "value" => {
-                        let content;
-                        parenthesized!(content in meta.input);
                         value = content.parse()?;
                     }
                     #[cfg(not(feature = "default_config_dir"))]
                     "path" => {
-                        let content;
-                        parenthesized!(content in meta.input);
                         path = content.parse().ok();
                     }
                     #[cfg(feature = "default_config_dir")]
                     "source_name" => {
-                        let content;
-                        parenthesized!(content in meta.input);
                         source_name = content.parse().ok();
                     }
                     attr => {
@@ -159,30 +151,26 @@ pub fn derive_persist_source(input: TokenStream) -> TokenStream {
         })
         .expect("");
     };
+
     #[cfg(not(feature = "default_config_dir"))]
-    let expanded = quote! {
-        impl #impl_generics encrypt_config::PersistSource for #name #ty_generics #where_clause {
-            type Value = #value;
-            type Map = ::std::collections::HashMap<String, Self::Value>;
-
-            fn path(&self) -> ::std::path::PathBuf {
-                ::std::path::PathBuf::from(#path)
-            }
-
-            fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>> {
-                Ok(#default_expr.into_iter().collect())
-            }
+    let func = quote!(
+        fn path(&self) -> ::std::path::PathBuf {
+            ::std::path::PathBuf::from(#path)
         }
-    };
+    );
     #[cfg(feature = "default_config_dir")]
+    let func = quote!(
+        fn source_name(&self) -> String {
+            #source_name.to_owned()
+        }
+    );
+
     let expanded = quote! {
         impl #impl_generics encrypt_config::PersistSource for #name #ty_generics #where_clause {
             type Value = #value;
             type Map = ::std::collections::HashMap<String, Self::Value>;
 
-            fn source_name(&self) -> String {
-                #source_name.to_owned()
-            }
+            #func
 
             fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>> {
                 Ok(#default_expr.into_iter().collect())
@@ -237,27 +225,21 @@ pub fn derive_secret_source(input: TokenStream) -> TokenStream {
     {
         attr.parse_nested_meta(|meta| {
             if let Some(i) = meta.path.get_ident() {
+                let content;
+                parenthesized!(content in meta.input);
                 match i.to_string().as_str() {
                     "default" => {
-                        let content;
-                        parenthesized!(content in meta.input);
                         default_expr = content.parse()?;
                     }
                     "value" => {
-                        let content;
-                        parenthesized!(content in meta.input);
                         value = content.parse()?;
                     }
                     #[cfg(not(feature = "default_config_dir"))]
                     "path" => {
-                        let content;
-                        parenthesized!(content in meta.input);
                         path = content.parse().ok();
                     }
                     #[cfg(feature = "default_config_dir")]
                     "source_name" => {
-                        let content;
-                        parenthesized!(content in meta.input);
                         source_name = content.parse().ok();
                     }
                     attr => {
@@ -276,31 +258,26 @@ pub fn derive_secret_source(input: TokenStream) -> TokenStream {
         })
         .expect("");
     };
+
     #[cfg(not(feature = "default_config_dir"))]
-    let expanded = quote! {
-        impl #impl_generics encrypt_config::SecretSource for #name #ty_generics #where_clause {
-            type Value = #value;
-            type Map = ::std::collections::HashMap<String, Self::Value>;
-
-
-            fn path(&self) -> ::std::path::PathBuf {
-                ::std::path::PathBuf::from(#path)
-            }
-
-            fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>> {
-                Ok(#default_expr.into_iter().collect())
-            }
+    let func = quote!(
+        fn path(&self) -> ::std::path::PathBuf {
+            ::std::path::PathBuf::from(#path)
         }
-    };
+    );
     #[cfg(feature = "default_config_dir")]
+    let func = quote!(
+        fn source_name(&self) -> String {
+            #source_name.to_owned()
+        }
+    );
+
     let expanded = quote! {
         impl #impl_generics encrypt_config::SecretSource for #name #ty_generics #where_clause {
             type Value = #value;
             type Map = ::std::collections::HashMap<String, Self::Value>;
 
-            fn source_name(&self) -> String {
-                #source_name.to_owned()
-            }
+            #func
 
             fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>> {
                 Ok(#default_expr.into_iter().collect())
