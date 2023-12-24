@@ -84,6 +84,7 @@ pub trait Source {
 /// assert_eq!(config_new.get::<_, Foo>("persist").unwrap(), new_value);
 /// ```
 #[cfg(feature = "persist")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "persist")))]
 pub trait PersistSource {
     /// The type of the config value
     type Value: Serialize + DeserializeOwned;
@@ -152,6 +153,7 @@ pub trait PersistSource {
 /// assert_eq!(config.get::<_, Foo>("secret").unwrap(), new_value);
 /// ```
 #[cfg(feature = "secret")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "secret")))]
 pub trait SecretSource {
     /// The type of the config value
     type Value: Serialize + DeserializeOwned;
