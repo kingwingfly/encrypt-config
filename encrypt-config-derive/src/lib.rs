@@ -1,3 +1,5 @@
+#![cfg_attr(doc_cfg, feature(doc_cfg))]
+
 #[cfg(all(not(feature = "persist"), feature = "default_config_dir"))]
 compile_error!("Feature `default_config_dir` only works with feature `persist` on.");
 
@@ -96,6 +98,7 @@ pub fn derive_normal_source(input: TokenStream) -> TokenStream {
 /// struct SourceFoo;
 /// ```
 #[cfg(feature = "persist")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "persist")))]
 #[proc_macro_derive(PersistSource, attributes(source))]
 pub fn derive_persist_source(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -203,6 +206,7 @@ pub fn derive_persist_source(input: TokenStream) -> TokenStream {
 /// struct SourceFoo;
 /// ```
 #[cfg(feature = "secret")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "secret")))]
 #[proc_macro_derive(SecretSource, attributes(source))]
 pub fn derive_secret_source(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);

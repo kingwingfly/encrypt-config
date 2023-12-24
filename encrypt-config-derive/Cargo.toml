@@ -7,6 +7,10 @@ license.workspace = true
 edition.workspace = true
 repository.workspace = true
 
+[package.metadata.docs.rs]
+features = ["full"]
+rustdoc-args = ["--cfg", "doc_cfg", "--generate-link-to-definition"]
+
 [dependencies]
 syn = { version = "2.0", features = ["full"] }
 quote = "1.0"
@@ -20,6 +24,7 @@ proc-macro = true
 
 [features]
 default = []
+full = ["persist", "secret"]
 persist = []
 secret = []
 default_config_dir = []
