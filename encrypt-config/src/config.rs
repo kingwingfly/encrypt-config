@@ -1,5 +1,5 @@
 //! # Config
-//! This module provides a `Config` struct that can be used to store configuration values.
+//! This module provides a [`Config`] struct that can be used to store configuration values.
 
 #[cfg(feature = "secret")]
 use crate::encrypt_utils::Encrypter;
@@ -44,7 +44,7 @@ pub struct Config {
 }
 
 impl Config {
-    /// Create a new `Config` struct.
+    /// Create a new [`Config`] struct.
     /// # Arguments
     /// * `config_name` - The name of the rsa private key stored by `keyring`.
     pub fn new(#[cfg(feature = "secret")] secret_name: impl AsRef<str>) -> Self {
@@ -110,6 +110,7 @@ impl Config {
     /// Add a persist source to the config.
     /// The source must implement [`PersistSource`] trait, which is for config that needs to be persisted.
     #[cfg(feature = "persist")]
+    #[cfg_attr(doc_cfg, doc(cfg(feature = "persist")))]
     pub fn add_persist_source(&mut self, source: impl PersistSource) -> ConfigResult<()> {
         let map = match std::fs::read(source.path()) {
             Ok(serded) => serde_json::from_slice(&serded)?,
@@ -130,6 +131,7 @@ impl Config {
     /// Add a secret source to the config.
     /// The source must implement [`SecretSource`] trait, which is for config that needs to be encrypted and persisted.
     #[cfg(feature = "secret")]
+    #[cfg_attr(doc_cfg, doc(cfg(feature = "secret")))]
     pub fn add_secret_source(&mut self, source: impl SecretSource) -> ConfigResult<()> {
         let map = match std::fs::read(source.path()) {
             Ok(encrypted) => serde_json::from_slice(&self.encrypter.decrypt(&encrypted)?)?,
@@ -211,6 +213,7 @@ impl Config {
 
     #[allow(unused)]
     #[cfg(not(feature = "save_on_change"))]
+    #[cfg_attr(doc_cfg, doc(cfg(feature = "save_on_change")))]
     fn save(&self) -> ConfigResult<()> {
         unimplemented!();
     }

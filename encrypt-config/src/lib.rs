@@ -1,3 +1,4 @@
+#![cfg_attr(doc_cfg, feature(doc_cfg))]
 #![doc = include_str!("../README.md")]
 #![deny(missing_docs, rustdoc::broken_intra_doc_links)]
 
@@ -8,6 +9,7 @@ compile_error!("Feature `mock` is designed only for feature `secret` on.");
 
 mod config;
 #[cfg(feature = "secret")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "secret")))]
 mod encrypt_utils;
 mod error;
 mod source;
@@ -17,6 +19,7 @@ pub use error::*;
 pub use source::*;
 
 #[cfg(feature = "derive")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "derive")))]
 pub use encrypt_config_derive::*;
 
 #[cfg(test)]

@@ -6,7 +6,10 @@ description.workspace = true
 license.workspace = true
 edition.workspace = true
 repository.workspace = true
-metadata.docs.rs.features = ["full"]
+
+[package.metadata.docs.rs]
+features = ["full"]
+rustdoc-args = ["--cfg", "doc_cfg", "--generate-link-to-definition"]
 
 [dependencies]
 snafu = { version = "0.7.5" }
