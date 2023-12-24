@@ -12,7 +12,7 @@ repository = "https://github.com/kingwingfly/encrypt-config"
 
 [workspace.dependencies]
 encrypt_config = { path = "encrypt-config" }
-encrypt_config_derive = { path = "encrypt-config-derive", version = "^0.0.1-alpha6" }
+encrypt_config_derive = { path = "encrypt-config-derive", version = "^0.0.1" }
 
 [profile.dev]
 opt-level = 3
