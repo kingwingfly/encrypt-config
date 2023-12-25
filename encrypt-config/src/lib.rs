@@ -1,6 +1,6 @@
-#![cfg_attr(doc_cfg, feature(doc_cfg))]
 #![doc = include_str!("../README.md")]
 #![deny(missing_docs, rustdoc::broken_intra_doc_links)]
+#![cfg_attr(all(doc, CHANNEL_NIGHTLY), feature(doc_auto_cfg))]
 
 #[cfg(all(not(feature = "persist"), feature = "default_config_dir"))]
 compile_error!("Feature `default_config_dir` only works with feature `persist` on.");
@@ -9,17 +9,20 @@ compile_error!("Feature `mock` is designed only for feature `secret` on.");
 
 mod config;
 #[cfg(feature = "secret")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "secret")))]
 mod encrypt_utils;
 mod error;
 mod source;
 
 pub use config::Config;
 pub use error::*;
-pub use source::*;
+
+#[cfg(feature = "persist")]
+pub use source::PersistSource;
+#[cfg(feature = "secret")]
+pub use source::SecretSource;
+pub use source::Source;
 
 #[cfg(feature = "derive")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "derive")))]
 pub use encrypt_config_derive::*;
 
 #[cfg(test)]
