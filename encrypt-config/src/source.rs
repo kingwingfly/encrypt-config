@@ -32,7 +32,7 @@ pub trait Source {
 
     /// The default config values from this source.
     /// This is the only way to add new config key-value pairs,
-    /// because we cannot infer the source type(`normal``, `persist`` and `secret``) of a new key after source merged into config if not so.
+    /// because we cannot infer the source type(`normal`, `persist` and `secret`) of a new key after source merged into config if not so.
     fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>>;
 }
 
@@ -84,7 +84,6 @@ pub trait Source {
 /// assert_eq!(config_new.get::<_, Foo>("persist").unwrap(), new_value);
 /// ```
 #[cfg(feature = "persist")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "persist")))]
 pub trait PersistSource {
     /// The type of the config value
     type Value: Serialize + DeserializeOwned;
@@ -93,7 +92,7 @@ pub trait PersistSource {
 
     /// The default config values from this source.
     /// This is the only way to add new config key-value pairs,
-    /// because we cannot infer the source type(`normal``, `persist`` and `secret``) of a new key after source merged into config if not so.
+    /// because we cannot infer the source type(`normal`, `persist` and `secret`) of a new key after source merged into config if not so.
     fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>>;
 
     /// The name of the config file. Its parent directory is the OS' default config directory.
@@ -153,7 +152,6 @@ pub trait PersistSource {
 /// assert_eq!(config.get::<_, Foo>("secret").unwrap(), new_value);
 /// ```
 #[cfg(feature = "secret")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "secret")))]
 pub trait SecretSource {
     /// The type of the config value
     type Value: Serialize + DeserializeOwned;
@@ -162,7 +160,7 @@ pub trait SecretSource {
 
     /// The default config values from this source.
     /// This is the only way to add new config key-value pairs,
-    /// because we cannot infer the source type(`normal``, `persist`` and `secret``) of a new key after source merged into config if not so.
+    /// because we cannot infer the source type(`normal`, `persist` and `secret`) of a new key after source merged into config if not so.
     fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>>;
 
     /// The name of the config file. Its parent directory is the OS' default config directory.
