@@ -46,7 +46,7 @@ pub struct Config {
 impl Config {
     /// Create a new [`Config`] struct.
     /// # Arguments
-    /// * `config_name` - The name of the rsa private key stored by `keyring`.
+    /// * `config_name` - The name of the rsa private key stored by `keyring`. Only needed when feature `secret` is on.
     pub fn new(#[cfg(feature = "secret")] secret_name: impl AsRef<str>) -> Self {
         Self {
             cache: Cache::new(),

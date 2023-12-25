@@ -16,15 +16,15 @@ use serde::{de::DeserializeOwned, Serialize};
 ///     type Value = Foo;
 ///     type Map = Vec<(String, Self::Value)>;
 ///
-///     #[cfg(not(feature = "default_config_dir"))]
+/// #   #[cfg(not(feature = "default_config_dir"))]
 ///     fn path(&self) -> std::path::PathBuf {
 ///         std::path::PathBuf::from("tests").join("secret.conf")
 ///     }
-///
-///     #[cfg(feature = "default_config_dir")]
-///     fn source_name(&self) -> String {
-///         "secret.conf".to_owned()
-///     }
+/// #
+/// #   #[cfg(feature = "default_config_dir")]
+/// #   fn source_name(&self) -> String {
+/// #       "secret.conf".to_owned()
+/// #   }
 ///
 ///     fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>> {
 ///         Ok(vec![("secret".to_owned(), Foo("secret".to_owned()))])

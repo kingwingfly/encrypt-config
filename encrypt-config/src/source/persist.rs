@@ -6,10 +6,10 @@ use serde::{de::DeserializeOwned, Serialize};
 /// use encrypt_config::{Config, PersistSource};
 /// use serde::{Deserialize, Serialize};
 ///
-/// #[cfg(feature = "secret")]
+/// # #[cfg(feature = "secret")]
 /// let mut config = Config::new("test");
-/// #[cfg(not(feature = "secret"))]
-/// let mut config = Config::new();
+/// # #[cfg(not(feature = "secret"))]
+/// # let mut config = Config::new();
 ///
 /// #[derive(Serialize, Deserialize, PartialEq, Debug)]
 /// struct Foo(String);
@@ -19,15 +19,15 @@ use serde::{de::DeserializeOwned, Serialize};
 ///     type Value = Foo;
 ///     type Map = Vec<(String, Self::Value)>;
 ///
-///     #[cfg(not(feature = "default_config_dir"))]
+/// #   #[cfg(not(feature = "default_config_dir"))]
 ///     fn path(&self) -> std::path::PathBuf {
 ///         std::path::PathBuf::from("tests").join("persist.conf")
 ///     }
-///
-///     #[cfg(feature = "default_config_dir")]
-///     fn source_name(&self) -> String {
-///         "persist.conf".to_owned()
-///     }
+/// #
+/// #    #[cfg(feature = "default_config_dir")]
+/// #    fn source_name(&self) -> String {
+/// #        "persist.conf".to_owned()
+/// #    }
 ///
 ///     fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>> {
 ///         Ok(vec![("persist".to_owned(), Foo("persist".to_owned()))])
@@ -39,10 +39,10 @@ use serde::{de::DeserializeOwned, Serialize};
 /// config.upgrade("persist", &new_value).unwrap();
 /// assert_eq!(config.get::<_, Foo>("persist").unwrap(), new_value);
 ///
-/// #[cfg(feature = "secret")]
+/// # #[cfg(feature = "secret")]
 /// let mut config_new = Config::new("test");
-/// #[cfg(not(feature = "secret"))]
-/// let mut config_new = Config::new();
+/// # #[cfg(not(feature = "secret"))]
+/// # let mut config_new = Config::new();
 ///
 /// config_new.add_persist_source(PersistSourceImpl).unwrap(); // Read config from disk
 /// assert_eq!(config_new.get::<_, Foo>("persist").unwrap(), new_value);
