@@ -81,8 +81,8 @@ This crate also has some optional features:
 - `persist`: If enabled, you can use the [`PersistSource`].
 - `secret`: If enabled, you can use the [`PersistSource`] and the [`SecretSource`] trait.
 - `mock`: If enabled, you can use the mock for testing.
-- `derive`: If enabled, you can use the derive macros to implement the `Source`, `PersistSource` and `SecretSource` trait.
-- `default_config_dir`: If enabled, the default config dir will be used.
+- `derive`: If enabled, you can use the derive macros to implement the [`Source`], [`PersistSource`] and [`SecretSource`] trait.
+- `default_config_dir`: If enabled, the default config dir will be used. Implemented through [dirs-next](https://crates.io/crates/dirs-next).
 - `protobuf`: If enabled, protobuf will be used instead of json for better performance. (Not implemented yet)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
