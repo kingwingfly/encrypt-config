@@ -47,6 +47,11 @@ impl Config {
     /// Create a new [`Config`] struct.
     /// # Arguments
     /// * `config_name` - The name of the rsa private key stored by `keyring`. Only needed when feature `secret` is on.
+    ///
+    #[cfg_attr(
+        feature = "secret",
+        doc = "To avoid entering the password during testing, you can enable `mock` feature. This can always return `Config`s with the **same** Encrypter during **each** test."
+    )]
     pub fn new(#[cfg(feature = "secret")] secret_name: impl AsRef<str>) -> Self {
         Self {
             cache: Cache::new(),
