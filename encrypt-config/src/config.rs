@@ -60,33 +60,16 @@ impl Config {
     /// * `key` - The key of the value to get.
     ///
     /// `R` must implement `serde::de::DeserializeOwned`, because this crate stores seriliazed data.
-    #[cfg(feature = "persist")]
     pub fn get<K, R>(&self, key: K) -> ConfigResult<R>
     where
         K: AsRef<str>,
         R: serde::de::DeserializeOwned,
     {
-        match self.cache.iter().find_map(|(_, map)| map.get(key.as_ref())) {
-            Some(serded) => Ok(serde_json::from_slice(serded)?),
-            None => Err(ConfigNotFound {
-                key: key.as_ref().to_owned(),
-            }
-            .build()),
-        }
-    }
-
-    /// Get a value from the config.
-    /// # Arguments
-    /// * `key` - The key of the value to get.
-    ///
-    /// `R` must implement `serde::de::DeserializeOwned`, because this crate stores seriliazed data.
-    #[cfg(not(feature = "persist"))]
-    pub fn get<K, R>(&self, key: K) -> ConfigResult<R>
-    where
-        K: AsRef<str>,
-        R: serde::de::DeserializeOwned,
-    {
-        let serded = self.cache.get(key.as_ref()).context(ConfigNotFound {
+        #[cfg(not(feature = "persist"))]
+        let found = self.cache.get(key.as_ref());
+        #[cfg(feature = "persist")]
+        let found = self.cache.iter().find_map(|(_, map)| map.get(key.as_ref()));
+        let serded = found.context(ConfigNotFound {
             key: key.as_ref().to_owned(),
         })?;
         Ok(serde_json::from_slice(serded)?)
