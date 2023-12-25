@@ -78,7 +78,7 @@ This crate provides 3 ways to manage your config:
 - [`SecretSource`]: A source that will be persisted to local file and encrypted
 
 This crate also has some optional features:
-- `persist`: If enabled, you can use the [`PersistSource`].
+- `persist`: If enabled, you can use the [`PersistSource`] trait.
 - `secret`: If enabled, you can use the [`PersistSource`] and the [`SecretSource`] trait.
 - `mock`: If enabled, you can use the mock for testing.
 - `derive`: If enabled, you can use the derive macros to implement the [`Source`], [`PersistSource`] and [`SecretSource`] trait.

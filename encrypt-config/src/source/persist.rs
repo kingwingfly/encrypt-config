@@ -43,7 +43,6 @@ use serde::{de::DeserializeOwned, Serialize};
 /// let mut config_new = Config::new("test");
 /// # #[cfg(not(feature = "secret"))]
 /// # let mut config_new = Config::new();
-///
 /// config_new.add_persist_source(PersistSourceImpl).unwrap(); // Read config from disk
 /// assert_eq!(config_new.get::<_, Foo>("persist").unwrap(), new_value);
 /// ```
