@@ -141,7 +141,7 @@ assert_eq!(config.get::<_, Foo>("secret").unwrap(), expect);
 
 // upgrade the secret
 let new_expect = Foo("new secret".to_owned());
-config.upgrade("secret", new_expect).unwrap();
+config.upgrade("secret", &new_expect).unwrap();
 assert_eq!(config.get::<_, Foo>("secret").unwrap(), new_expect);
 
 // read from disk
