@@ -139,11 +139,15 @@ let expect = Foo("secret".to_owned());
 config.add_secret_source(SecretSourceImpl).unwrap();
 assert_eq!(config.get::<_, Foo>("secret").unwrap(), expect);
 
-let new_expect2 = Foo("new secret".to_owned());
-assert_eq!(config.get::<_, Foo>("secret").unwrap(), new_expect2);
+// upgrade the secret
+let new_expect = Foo("new secret".to_owned());
+config.upgrade("secret", new_expect).unwrap();
+assert_eq!(config.get::<_, Foo>("secret").unwrap(), new_expect);
+
+// read from disk
 let mut config_new = Config::new("test");
 config_new.add_secret_source(SecretSourceImpl).unwrap(); // Read secret config from disk
-assert_eq!(config_new.get::<_, Foo>("secret").unwrap(), new_expect2); // The persist source is brought back
+assert_eq!(config_new.get::<_, Foo>("secret").unwrap(), new_expect); // The persist source is brought back
 # }
 ```
 
