@@ -19,6 +19,7 @@ pub enum ConfigError {
         /// The error returned by `serde_json`.
         source: serde_json::Error,
     },
+    #[cfg(feature = "secret")]
     /// This error will be returned when the encrypter cannot be deserialized from keyring password. This may caused by the private key stored in keyring being incorrect, modified or recreated.
     #[snafu(display("Failed to deseriliaze encrypter from keyring."))]
     LoadEncrypterFailed {

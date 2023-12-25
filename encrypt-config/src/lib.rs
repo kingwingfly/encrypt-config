@@ -16,11 +16,7 @@ mod source;
 pub use config::Config;
 pub use error::*;
 
-#[cfg(feature = "persist")]
-pub use source::PersistSource;
-#[cfg(feature = "secret")]
-pub use source::SecretSource;
-pub use source::Source;
+pub use source::*;
 
 #[cfg(feature = "derive")]
 pub use encrypt_config_derive::*;
