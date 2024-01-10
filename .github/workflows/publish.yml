@@ -13,7 +13,10 @@ jobs:
     permissions: write-all
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@master
+
+      - name: install cargo components
+        run: rustup component add clippy
 
       - name: Extract version
         id: extract-version
