@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # clippy
 cargo clippy --all-features --all-targets -- -D warnings
