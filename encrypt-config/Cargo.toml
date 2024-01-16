@@ -25,12 +25,12 @@ encrypt_config_derive = { workspace = true, optional = true }
 rustc_version = "0.4.0"
 
 [features]
-default = ["serde", "save_on_change"]
+default = ["serde"]
 full = ["default", "persist", "secret", "derive"]
 serde = ["dep:serde", "dep:serde_json"]
 derive = ["dep:encrypt_config_derive"]
 secret = ["dep:rsa", "dep:rand", "dep:keyring", "persist", "encrypt_config_derive?/secret"]
-persist = ["encrypt_config_derive?/persist"]
+persist = [ "save_on_change", "encrypt_config_derive?/persist"]
 default_config_dir = ["dep:dirs-next", "encrypt_config_derive?/default_config_dir"]
 protobuf = []
 save_on_change = []
