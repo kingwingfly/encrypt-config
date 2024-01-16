@@ -98,7 +98,6 @@ impl Config {
     /// Add a persist source to the config.
     /// The source must implement [`PersistSource`] trait, which is for config that needs to be persisted.
     #[cfg(feature = "persist")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "persist")))]
     pub fn add_persist_source(&mut self, source: impl PersistSource) -> ConfigResult<()> {
         let map = match std::fs::read(source.path()) {
             Ok(serded) => serde_json::from_slice(&serded)?,
@@ -119,7 +118,6 @@ impl Config {
     /// Add a secret source to the config.
     /// The source must implement [`SecretSource`] trait, which is for config that needs to be encrypted and persisted.
     #[cfg(feature = "secret")]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "secret")))]
     pub fn add_secret_source(&mut self, source: impl SecretSource) -> ConfigResult<()> {
         let map = match std::fs::read(source.path()) {
             Ok(encrypted) => serde_json::from_slice(&self.encrypter.decrypt(&encrypted)?)?,
@@ -153,49 +151,44 @@ impl Config {
     }
 
     /// Upgrade a value in the config. The key must already exist.
-    #[cfg(feature = "persist")]
     pub fn upgrade<K, V>(&mut self, key: K, value: &V) -> ConfigResult<()>
     where
         K: AsRef<str>,
         V: serde::Serialize,
     {
-        let (_kind, map) = self
-            .cache
-            .iter_mut()
-            .find(|(_, map)| map.contains_key(key.as_ref()))
-            .context(ConfigNotFound {
-                key: key.as_ref().to_owned(),
-            })?;
+        #[cfg(feature = "persist")]
+        {
+            let (_kind, map) = self
+                .cache
+                .iter_mut()
+                .find(|(_, map)| map.contains_key(key.as_ref()))
+                .context(ConfigNotFound {
+                    key: key.as_ref().to_owned(),
+                })?;
 
-        let v = map.get_mut(key.as_ref()).unwrap();
-        *v = serde_json::to_vec(value)?;
-        #[cfg(feature = "save_on_change")]
-        match _kind {
-            Kind::Normal => {}
-            Kind::Persist(path) => {
-                let path = path.write().unwrap();
-                std::fs::write(&*path, serde_json::to_vec(map)?)?;
-            }
-            #[cfg(feature = "secret")]
-            Kind::Secret(path) => {
-                let path = path.write().unwrap();
-                std::fs::write(&*path, self.encrypter.encrypt(map)?)?;
+            let v = map.get_mut(key.as_ref()).unwrap();
+            *v = serde_json::to_vec(value)?;
+            #[cfg(feature = "save_on_change")]
+            match _kind {
+                Kind::Normal => {}
+                Kind::Persist(path) => {
+                    let path = path.write().unwrap();
+                    std::fs::write(&*path, serde_json::to_vec(map)?)?;
+                }
+                #[cfg(feature = "secret")]
+                Kind::Secret(path) => {
+                    let path = path.write().unwrap();
+                    std::fs::write(&*path, self.encrypter.encrypt(map)?)?;
+                }
             }
         }
-        Ok(())
-    }
-
-    /// Upgrade a value in the config. The key must already exist.
-    #[cfg(not(feature = "persist"))]
-    pub fn upgrade<K, V>(&mut self, key: K, value: V) -> ConfigResult<()>
-    where
-        K: AsRef<str>,
-        V: serde::Serialize,
-    {
-        let v = self.cache.get_mut(key.as_ref()).context(ConfigNotFound {
-            key: key.as_ref().to_owned(),
-        })?;
-        *v = serde_json::to_vec(&value)?;
+        #[cfg(not(feature = "persist"))]
+        {
+            let v = self.cache.get_mut(key.as_ref()).context(ConfigNotFound {
+                key: key.as_ref().to_owned(),
+            })?;
+            *v = serde_json::to_vec(value)?;
+        }
         Ok(())
     }
 

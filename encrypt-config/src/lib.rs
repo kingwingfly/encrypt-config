@@ -4,6 +4,8 @@
 
 #[cfg(all(not(feature = "persist"), feature = "default_config_dir"))]
 compile_error!("Feature `default_config_dir` only works with feature `persist` on.");
+#[cfg(all(not(feature = "persist"), feature = "save_on_change"))]
+compile_error!("Feature `save_on_change` is designed only for feature `persist` on.");
 #[cfg(all(not(feature = "secret"), feature = "mock"))]
 compile_error!("Feature `mock` is designed only for feature `secret` on.");
 
