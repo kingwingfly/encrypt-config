@@ -49,6 +49,11 @@ impl Config {
     /// * `config_name` - The name of the rsa private key stored by `keyring`. Only needed when feature `secret` is on.
     ///
     #[cfg_attr(
+        feature = "persist",
+        doc = "To avoid manually delete the config file persisted during testing, you can enable `mock` feature. This will impl `Drop` for `Config` which automatically delete the config file persisted."
+    )]
+    ///
+    #[cfg_attr(
         feature = "secret",
         doc = "To avoid entering the password during testing, you can enable `mock` feature. This can always return `Config`s with the **same** Encrypter during **each** test."
     )]
@@ -194,8 +199,27 @@ impl Config {
 
     #[allow(unused)]
     #[cfg(not(feature = "save_on_change"))]
-    #[cfg_attr(doc_cfg, doc(cfg(feature = "save_on_change")))]
     fn save(&self) -> ConfigResult<()> {
         unimplemented!();
+    }
+}
+
+#[cfg(all(feature = "persist", feature = "mock"))]
+impl Drop for Config {
+    fn drop(&mut self) {
+        for (kind, _) in self.cache.iter() {
+            match kind {
+                Kind::Normal => {}
+                Kind::Persist(path) => {
+                    let path = path.write().unwrap();
+                    std::fs::remove_file(&*path).ok();
+                }
+                #[cfg(feature = "secret")]
+                Kind::Secret(path) => {
+                    let path = path.write().unwrap();
+                    std::fs::remove_file(&*path).ok();
+                }
+            }
+        }
     }
 }

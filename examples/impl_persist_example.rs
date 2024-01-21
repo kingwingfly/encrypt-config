@@ -44,8 +44,6 @@ fn persist_test() {
     ); // Now it's empty
     config_new.add_persist_source(PersistSourceImpl).unwrap(); // Read persist config from disk
     assert_eq!(config_new.get::<_, Foo>("persist").unwrap(), new_expect1);
-
-    std::fs::remove_file(PersistSourceImpl.path()).unwrap();
 }
 
 fn main() {

@@ -16,12 +16,12 @@ required-features = ["normal"]
 [[example]]
 name = "impl_persist_example"
 path = "impl_persist_example.rs"
-required-features = ["persist"]
+required-features = ["persist", "mock"]
 
 [[example]]
 name = "impl_secret_example"
 path = "impl_secret_example.rs"
-required-features = ["secret"]
+required-features = ["secret", "mock"]
 
 [[example]]
 name = "derive_normal_example"
@@ -40,8 +40,9 @@ required-features = ["secret", "derive"]
 
 [features]
 default = []
+normal = []
+mock = ["encrypt_config/mock"]
 derive = ["encrypt_config/derive"]
 default_config_dir = ["encrypt_config/default_config_dir"]
-normal = []
 persist = ["encrypt_config/persist", "normal"]
 secret = ["encrypt_config/secret", "persist"]

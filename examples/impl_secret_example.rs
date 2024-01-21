@@ -42,8 +42,6 @@ fn secret_test() {
     );
     config_new.add_secret_source(SecretSourceImpl).unwrap(); // Read secret config from disk
     assert_eq!(config_new.get::<_, Foo>("secret").unwrap(), new_expect2); // The persist source is brought back
-
-    std::fs::remove_file(SecretSourceImpl.path()).unwrap();
 }
 
 fn main() {

@@ -6,8 +6,8 @@
 compile_error!("Feature `default_config_dir` only works with feature `persist` on.");
 #[cfg(all(not(feature = "persist"), feature = "save_on_change"))]
 compile_error!("Feature `save_on_change` is designed only for feature `persist` on.");
-#[cfg(all(not(feature = "secret"), feature = "mock"))]
-compile_error!("Feature `mock` is designed only for feature `secret` on.");
+#[cfg(all(not(feature = "persist"), feature = "mock"))]
+compile_error!("Feature `mock` is designed only for feature `persist` on.");
 
 mod config;
 #[cfg(feature = "secret")]
@@ -100,6 +100,7 @@ mod tests {
         config_new.add_persist_source(PersistSourceImpl).unwrap(); // Read persist config from disk
         assert_eq!(config_new.get::<_, Foo>("persist").unwrap(), new_expect1);
 
+        #[cfg(not(feature = "mock"))]
         std::fs::remove_file(PersistSourceImpl.path()).unwrap();
     }
 
@@ -138,6 +139,7 @@ mod tests {
         config_new.add_secret_source(SecretSourceImpl).unwrap(); // Read secret config from disk
         assert_eq!(config_new.get::<_, Foo>("secret").unwrap(), new_expect2); // The persist source is brought back
 
+        #[cfg(not(feature = "mock"))]
         std::fs::remove_file(SecretSourceImpl.path()).unwrap();
     }
 }
