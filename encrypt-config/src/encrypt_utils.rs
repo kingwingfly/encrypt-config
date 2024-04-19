@@ -68,12 +68,6 @@ impl Encrypter {
     /// let encrypter = Encrypter::new("test")?;
     /// let encrypted = encrypter.encrypt_serded(serded)?;
     /// ```
-    /// # Question
-    /// Q: Why not use `Foo` as origin more conviniently?
-    ///
-    /// A: The user passes `&Foo` to [`SecretSource::upgrade`] to upgrade the config, which returns a [`SecretConfigPatch`],
-    /// containing a [`Func`] as its field. `Func`, which is a boxed closure, should take the ownership of `Foo` if directly use
-    /// it. To avoid this, and due to we need seriliaze it anyway, we just move its serded `Vec<u8>` into the closure.
     pub(crate) fn encrypt_serded(&self, origin: &[u8]) -> ConfigResult<Encrypted> {
         let mut rng = rand::thread_rng();
         #[cfg(not(target_os = "windows"))]
