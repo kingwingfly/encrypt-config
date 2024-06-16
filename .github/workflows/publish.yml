@@ -1,8 +1,16 @@
-name: Publish
+name: publish
 
 on:
-  push:
-    branches: [dev]
+  workflow_dispatch:
+    inputs:
+      encrypt_config:
+        description: "publish encrypt_config"
+        type: boolean
+        default: false
+      encrypt_config_derive:
+        description: "publish encrypt_config_derive"
+        type: boolean
+        default: false
 
 env:
   CARGO_TERM_COLOR: always
@@ -10,39 +18,19 @@ env:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    permissions: write-all
-
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v4
 
       - name: install cargo components
         run: rustup component add clippy
 
-      - name: Extract version
-        id: extract-version
-        run: echo "VERSION=$(grep -oP '^version = "\K[^"]+' Cargo.toml | awk '{$1=$1;print}')" >> $GITHUB_OUTPUT
+      - name: login to crates.io
+        run: cargo login ${{ secrets.CRATESIO }}
 
-      - name: Run tests
-        run: .github/scripts/test.sh
+      - name: publish encrypt_config
+        if: ${{ inputs.gpt_core }}
+        run: .github/scripts/publish_test.sh encrypt_config && .github/scripts/publish.sh encrypt_config
 
-      - name: publish crates dry run
-        run: |
-          cargo login ${{ secrets.crates_io }}
-          cargo publish -p encrypt_config_derive --dry-run
-          cargo publish -p encrypt_config --dry-run
-
-      - name: publish crates
-        run: |
-          cargo publish -p encrypt_config_derive
-          cargo publish -p encrypt_config
-
-      - name: Create Tag
-        uses: actions/github-script@v6
-        with:
-          script: |
-            github.rest.git.createRef({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                ref: 'refs/tags/v${{ steps.extract-version.outputs.VERSION }}',
-                sha: context.sha
-            })
+      - name: publish encrypt_config_derive
+        if: ${{ inputs.gpt_ui }}
+        run: .github/scripts/publish_test.sh encrypt_config_derive && .github/scripts/publish.sh encrypt_config_derive

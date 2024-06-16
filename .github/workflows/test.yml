@@ -1,4 +1,4 @@
-name: Test
+name: test
 
 on:
   pull_request:
@@ -11,19 +11,15 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@master
-
-      - name: install cargo components
-        run: rustup component add clippy
+      - uses: actions/checkout@v4
 
       - name: Extract version
         id: extract-version
         run: echo "VERSION=$(grep -oP '^version = "\K[^"]+' Cargo.toml | awk '{$1=$1;print}')" >> $GITHUB_OUTPUT
 
       - name: Cache restore
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         id: cache-cargo-restore
         with:
           path: |
@@ -34,13 +30,17 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ steps.extract-version.outputs.VERSION }}
 
+      - name: install cargo components
+        if: steps.cache-cargo-restore.outputs.cache-hit != 'true'
+        run: rustup component add clippy
+
       - name: Run build
         if: steps.cache-cargo-restore.outputs.cache-hit != 'true'
-        run: cargo build --all-features --all-targets
+        run: cargo build
 
       - name: Cache save
         if: steps.cache-cargo-restore.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         id: cache-cargo-save
         with:
           path: |
@@ -51,5 +51,5 @@ jobs:
             target/
           key: ${{ steps.cache-cargo-restore.outputs.cache-primary-key }}
 
-      - name: Run tests
+      - name: run tests
         run: .github/scripts/test.sh
