@@ -5,7 +5,7 @@ use snafu::Snafu;
 #[snafu(visibility(pub(crate)), context(suffix(false)))]
 pub enum ConfigError {
     /// This error will be returned when the key is not found in the config.
-    #[snafu(display("The key `{}` not found in Config", key))]
+    #[snafu(display("The type `{}` not found in Config", key))]
     ConfigNotFound {
         /// The key which is not found in the config.
         key: String,
@@ -22,22 +22,15 @@ pub enum ConfigError {
     #[cfg(feature = "secret")]
     /// This error will be returned when the encrypter cannot be deserialized from keyring password. This may caused by the private key stored in keyring being incorrect, modified or recreated.
     #[snafu(display("Failed to deseriliaze encrypter from keyring."))]
-    LoadEncrypterFailed {
-        /// The error returned by `serde_json`.
-        source: serde_json::Error,
-    },
+    LoadEncrypterFailed,
     #[cfg(feature = "secret")]
     /// This error will be returned when the OS' secret manager cannot be accessed.
     #[snafu(
         display(
             "Keyring Error.\nThis error may caused by OS' secret manager, the rsa private key cannot be saved or read."
         ),
-        context(false)
     )]
-    KeyringError {
-        /// The error returned by `keyring`.
-        source: keyring::Error,
-    },
+    KeyringError,
     /// This error will be returned when the encryption or decryption failed.
     #[snafu(
         display("Encryption Error. Cannot encrypt or decrypt.\nIf it's a decrypt error, maybe it's the private key stored in keyring being incorrect, modified or recreated."),

@@ -9,23 +9,5 @@ encrypt_config = { workspace = true }
 serde = "1"
 
 [[test]]
-name = "derive_normal_test"
-path = "derive_normal_test.rs"
-required-features = ["derive"]
-
-[[test]]
-name = "derive_persist_test"
-path = "derive_persist_test.rs"
-required-features = ["derive", "persist"]
-
-[[test]]
-name = "derive_secret_test"
-path = "derive_secret_test.rs"
-required-features = ["derive", "secret"]
-
-[features]
-default = []
-derive = ["encrypt_config/derive"]
-default_config_dir = ["encrypt_config/default_config_dir"]
-persist = ["encrypt_config/persist"]
-secret = ["encrypt_config/secret"]
+name = "encrypter_test"
+path = "encrypter_test.rs"

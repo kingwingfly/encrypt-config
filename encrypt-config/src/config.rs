@@ -7,40 +7,95 @@ use crate::encrypt_utils::Encrypter;
 use crate::PersistSource;
 #[cfg(feature = "secret")]
 use crate::SecretSource;
-use crate::{CollectFailed, ConfigNotFound, ConfigResult, Source};
+use crate::{
+    error::{ConfigNotFound, ConfigResult},
+    Source,
+};
 use snafu::OptionExt;
-use std::collections::HashMap;
+use std::{
+    any::{type_name, Any, TypeId},
+    cell::{Ref, RefCell, RefMut},
+    collections::HashMap,
+    marker::PhantomData,
+    ops::{Deref, DerefMut},
+};
 #[cfg(feature = "persist")]
 use std::{path::PathBuf, sync::RwLock};
 
-type CacheKey = String;
-type CacheValue = Vec<u8>;
-// type ConfigKV = (CacheKey, CacheValue);
-
 #[cfg(feature = "persist")]
-type PersistPath = RwLock<PathBuf>;
+struct CacheValue {
+    kind: Kind,
+    inner: RefCell<Box<dyn Any>>,
+}
+
+#[cfg(not(feature = "persist"))]
+struct CacheValue {
+    inner: RefCell<Box<dyn Any>>,
+}
 
 #[cfg(feature = "persist")]
 enum Kind {
     Normal,
-    Persist(PersistPath),
+    Persist(PathBuf),
     #[cfg(feature = "secret")]
-    Secret(PersistPath),
+    Secret(PathBuf),
 }
 
-#[cfg(feature = "persist")]
-type Cache = Vec<(Kind, HashMap<CacheKey, CacheValue>)>;
-#[cfg(not(feature = "persist"))]
-type Cache = HashMap<CacheKey, CacheValue>;
+type Cache = HashMap<TypeId, CacheValue>;
 
 /// A struct that can be used to store configuration values.
 /// # Example
 /// See [`Source`], [`PersistSource`], [`SecretSource`]
-#[derive(Default)]
 pub struct Config {
     cache: Cache,
     #[cfg(feature = "secret")]
-    encrypter: Encrypter,
+    encrypter: &'static Encrypter,
+}
+
+impl Default for Config {
+    /// Create an empty [`Config`] struct.
+    #[cfg_attr(
+        feature = "secret",
+        doc = "The default keyring entry is `encrypt_config`"
+    )]
+    fn default() -> Self {
+        Self::new(
+            #[cfg(feature = "secret")]
+            "encrypt_config",
+        )
+    }
+}
+
+pub struct ConfigRef<'a, T: 'static> {
+    inner: Ref<'a, Box<dyn Any>>,
+    _marker: PhantomData<&'a T>,
+}
+
+pub struct ConfigMut<'a, T: 'static> {
+    inner: RefMut<'a, Box<dyn Any>>,
+    _marker: PhantomData<&'a T>,
+}
+
+impl<T: 'static> Deref for ConfigRef<'_, T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        self.inner.downcast_ref().unwrap()
+    }
+}
+
+impl<T: 'static> Deref for ConfigMut<'_, T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        self.inner.downcast_ref().unwrap()
+    }
+}
+
+impl<T: 'static> DerefMut for ConfigMut<'_, T> {
+    fn deref_mut(&mut self) -> &mut T {
+        self.inner.downcast_mut().unwrap()
+    }
 }
 
 impl Config {
@@ -57,66 +112,85 @@ impl Config {
         feature = "secret",
         doc = "To avoid entering the password during testing, you can enable `mock` feature. This can always return `Config`s with the **same** Encrypter during **each** test."
     )]
-    pub fn new(#[cfg(feature = "secret")] secret_name: impl AsRef<str>) -> Self {
+    pub fn new(#[cfg(feature = "secret")] keyring_entry: impl AsRef<str>) -> Self {
         Self {
             cache: Cache::new(),
             #[cfg(feature = "secret")]
-            encrypter: Encrypter::new(secret_name).unwrap(),
+            encrypter: Encrypter::new(keyring_entry).unwrap(),
         }
     }
 
-    /// Get a value from the config.
-    /// # Arguments
-    /// * `key` - The key of the value to get.
-    ///
-    /// `R` must implement `serde::de::DeserializeOwned`, because this crate stores seriliazed data.
-    pub fn get<K, R>(&self, key: K) -> ConfigResult<R>
+    /// Get an immutable ref from the config.
+    pub fn get<T>(&self) -> ConfigResult<ConfigRef<T>>
     where
-        K: AsRef<str>,
-        R: serde::de::DeserializeOwned,
+        T: Any + 'static,
     {
-        #[cfg(not(feature = "persist"))]
-        let found = self.cache.get(key.as_ref());
-        #[cfg(feature = "persist")]
-        let found = self.cache.iter().find_map(|(_, map)| map.get(key.as_ref()));
-        let serded = found.context(ConfigNotFound {
-            key: key.as_ref().to_owned(),
+        let value = self.cache.get(&TypeId::of::<T>()).context(ConfigNotFound {
+            key: type_name::<T>(),
         })?;
-        Ok(serde_json::from_slice(serded)?)
+        Ok(ConfigRef {
+            inner: value.inner.borrow(),
+            _marker: PhantomData,
+        })
+    }
+
+    /// Get a mutable ref from the config.
+    pub fn get_mut<T>(&self) -> ConfigResult<ConfigMut<T>>
+    where
+        T: Any + 'static,
+    {
+        let value = self.cache.get(&TypeId::of::<T>()).context(ConfigNotFound {
+            key: type_name::<T>(),
+        })?;
+        Ok(ConfigMut {
+            inner: value.inner.borrow_mut(),
+            _marker: PhantomData,
+        })
     }
 
     /// Add a source to the config.
+    pub fn add_source<T>(
+        &mut self,
+        #[cfg(feature = "persist")] kind: Kind,
+        source: T,
+    ) -> ConfigResult<()> {
+        let _ = source;
+        Ok(())
+    }
+
+    /// Add a normal source to the config.
     /// The source must implement [`Source`] trait, which is for normal config that does not need to be encrypted or persisted.
-    pub fn add_source(&mut self, source: impl Source) -> ConfigResult<()> {
-        let map = source
-            .default()
-            .map_err(|_| CollectFailed.build())?
-            .into_iter()
-            .map(|(k, v)| (k, serde_json::to_vec(&v).unwrap()));
-        #[cfg(feature = "persist")]
-        self.cache.push((Kind::Normal, map.collect()));
-        #[cfg(not(feature = "persist"))]
-        self.cache.extend(map);
+    pub fn add_normal_source<T>(&mut self, source: T) -> ConfigResult<()>
+    where
+        T: Any + Source + 'static,
+    {
+        let value = Box::new(source) as Box<dyn Any>;
+        self.cache.insert(
+            (*value).type_id(),
+            CacheValue {
+                #[cfg(feature = "persist")]
+                kind: Kind::Normal,
+                inner: RefCell::new(value),
+            },
+        );
         Ok(())
     }
 
     /// Add a persist source to the config.
     /// The source must implement [`PersistSource`] trait, which is for config that needs to be persisted.
     #[cfg(feature = "persist")]
-    pub fn add_persist_source(&mut self, source: impl PersistSource) -> ConfigResult<()> {
-        let map = match std::fs::read(source.path()) {
-            Ok(serded) => serde_json::from_slice(&serded)?,
-            Err(_) => source
-                .default()
-                .map_err(|_| CollectFailed.build())?
-                .into_iter()
-                .map(|(k, v)| (k, serde_json::to_vec(&v).unwrap()))
-                .collect(),
-        };
-        #[cfg(feature = "save_on_change")]
-        std::fs::write(source.path(), serde_json::to_vec(&map)?)?;
-        self.cache
-            .push((Kind::Persist(RwLock::new(source.path())), map));
+    pub fn add_persist_source<T>(&mut self, source: T) -> ConfigResult<()>
+    where
+        T: Any + PersistSource + 'static,
+    {
+        let value = Box::new(source) as Box<dyn Any>;
+        self.cache.insert(
+            (*value).type_id(),
+            CacheValue {
+                kind: Kind::Persist(path),
+                inner: RefCell::new(value),
+            },
+        );
         Ok(())
     }
 
@@ -124,83 +198,7 @@ impl Config {
     /// The source must implement [`SecretSource`] trait, which is for config that needs to be encrypted and persisted.
     #[cfg(feature = "secret")]
     pub fn add_secret_source(&mut self, source: impl SecretSource) -> ConfigResult<()> {
-        let map = match std::fs::read(source.path()) {
-            Ok(encrypted) => serde_json::from_slice(&self.encrypter.decrypt(&encrypted)?)?,
-            Err(_) => source
-                .default()
-                .map_err(|_| CollectFailed.build())?
-                .into_iter()
-                .map(|(k, v)| (k, serde_json::to_vec(&v).unwrap()))
-                .collect(),
-        };
-        #[cfg(feature = "save_on_change")]
-        std::fs::write(source.path(), self.encrypter.encrypt(&map)?)?;
-
-        self.cache
-            .push((Kind::Secret(RwLock::new(source.path())), map));
-        Ok(())
-    }
-
-    /// Upgrade all values in the config. The keys must already exist.
-    /// If not, those key-values before the first not existing one will be upgraded, and those after will be omitted.
-    pub fn upgrade_all<'v, K, V, KV>(&mut self, kv: KV) -> ConfigResult<()>
-    where
-        K: AsRef<str>,
-        V: serde::Serialize + 'v,
-        KV: IntoIterator<Item = (K, &'v V)>,
-    {
-        for (key, value) in kv {
-            self.upgrade(key, value)?;
-        }
-        Ok(())
-    }
-
-    /// Upgrade a value in the config. The key must already exist.
-    pub fn upgrade<K, V>(&mut self, key: K, value: &V) -> ConfigResult<()>
-    where
-        K: AsRef<str>,
-        V: serde::Serialize,
-    {
-        #[cfg(feature = "persist")]
-        {
-            let (_kind, map) = self
-                .cache
-                .iter_mut()
-                .find(|(_, map)| map.contains_key(key.as_ref()))
-                .context(ConfigNotFound {
-                    key: key.as_ref().to_owned(),
-                })?;
-
-            let v = map.get_mut(key.as_ref()).unwrap();
-            *v = serde_json::to_vec(value)?;
-            #[cfg(feature = "save_on_change")]
-            match _kind {
-                Kind::Normal => {}
-                Kind::Persist(path) => {
-                    let path = path.write().unwrap();
-                    std::fs::write(&*path, serde_json::to_vec(map)?)?;
-                }
-                #[cfg(feature = "secret")]
-                Kind::Secret(path) => {
-                    let path = path.write().unwrap();
-                    std::fs::write(&*path, self.encrypter.encrypt(map)?)?;
-                }
-            }
-        }
-        #[cfg(not(feature = "persist"))]
-        {
-            let v = self.cache.get_mut(key.as_ref()).context(ConfigNotFound {
-                key: key.as_ref().to_owned(),
-            })?;
-            *v = serde_json::to_vec(value)?;
-        }
-        Ok(())
-    }
-
-    #[allow(unused)]
-    #[cfg(not(feature = "save_on_change"))]
-    fn save(&self) -> ConfigResult<()> {
-        unimplemented!();
+        todo!()
     }
 }
 

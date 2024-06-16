@@ -1,4 +1,4 @@
-#![cfg_attr(all(doc, CHANNEL_NIGHTLY), feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 #[cfg(all(not(feature = "persist"), feature = "default_config_dir"))]
 compile_error!("Feature `default_config_dir` only works with feature `persist` on.");
@@ -10,21 +10,6 @@ use syn::LitStr;
 use syn::{parenthesized, parse_macro_input, DeriveInput, Expr, Ident};
 
 /// A derive macro helping implemente `Source` trait.
-/// # Example
-/// ```
-/// # use encrypt_config::Source;
-/// # use serde::{Serialize, Deserialize};
-/// #[derive(Source)]
-/// #[source(default([("key".to_owned(), "value".to_owned())]))]
-/// struct SourceArray;
-///
-/// #[derive(Serialize, Deserialize)]
-/// struct Foo(String);
-///
-/// #[derive(Source)]
-/// #[source(value(Foo), default([("key".to_owned(), Foo("value".to_owned()))]))]
-/// struct SourceFoo;
-/// ```
 #[proc_macro_derive(Source, attributes(source))]
 pub fn derive_normal_source(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -78,25 +63,6 @@ pub fn derive_normal_source(input: TokenStream) -> TokenStream {
 }
 
 /// A derive macro helping implemente `PersistSource` trait.
-/// # Example
-/// ```
-/// # use encrypt_config::PersistSource;
-/// # use serde::{Serialize, Deserialize};
-/// #[derive(Serialize, Deserialize)]
-/// struct Foo(String);
-///
-/// // If feature `default_config_dir` is off:
-/// # #[cfg(not(feature = "default_config_dir"))]
-/// #[derive(PersistSource)]
-/// #[source(value(Foo), path("tests/persist.conf"), default([("key".to_owned(), Foo("value".to_owned()))]))]
-/// struct SourceFoo;
-///
-/// // If feature `default_config_dir` is on:
-/// # #[cfg(feature = "default_config_dir")]
-/// #[derive(PersistSource)]
-/// #[source(value(Foo), source_name("secret.conf"), default([("key".to_owned(), Foo("value".to_owned()))]))]
-/// struct SourceFoo;
-/// ```
 #[cfg(feature = "persist")]
 #[proc_macro_derive(PersistSource, attributes(source))]
 pub fn derive_persist_source(input: TokenStream) -> TokenStream {
@@ -185,25 +151,6 @@ pub fn derive_persist_source(input: TokenStream) -> TokenStream {
 }
 
 /// A derive macro helping implemente `SecretSource` trait.
-/// # Example
-/// ```
-/// # use encrypt_config::SecretSource;
-/// # use serde::{Serialize, Deserialize};
-/// #[derive(Serialize, Deserialize)]
-/// struct Foo(String);
-///
-/// // If feature `default_config_dir` is off:
-/// # #[cfg(not(feature = "default_config_dir"))]
-/// #[derive(SecretSource)]
-/// #[source(value(Foo), path("tests/secret.conf"), default([("key".to_owned(), Foo("value".to_owned()))]))]
-/// struct SourceFoo;
-///
-/// // If feature `default_config_dir` is on:
-/// # #[cfg(feature = "default_config_dir")]
-/// #[derive(SecretSource)]
-/// #[source(value(Foo), source_name("secret.conf"), default([("key".to_owned(), Foo("value".to_owned()))]))]
-/// struct SourceFoo;
-/// ```
 #[cfg(feature = "secret")]
 #[proc_macro_derive(SecretSource, attributes(source))]
 pub fn derive_secret_source(input: TokenStream) -> TokenStream {
