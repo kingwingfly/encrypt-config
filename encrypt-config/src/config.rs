@@ -1,6 +1,8 @@
 //! # Config
 //! This module provides a [`Config`] struct that can be used to store configuration values.
 
+use snafu::OptionExt as _;
+
 #[cfg(feature = "secret")]
 use crate::encrypt_utils::Encrypter;
 #[cfg(feature = "persist")]
@@ -9,9 +11,8 @@ use crate::PersistSource;
 use crate::SecretSource;
 use crate::{
     error::{ConfigNotFound, ConfigResult},
-    Source,
+    NormalSource,
 };
-use snafu::OptionExt;
 use std::{
     any::{type_name, Any, TypeId},
     cell::{Ref, RefCell, RefMut},
@@ -98,6 +99,48 @@ impl<T: 'static> DerefMut for ConfigMut<'_, T> {
     }
 }
 
+trait FromCache {
+    type Item<'new>;
+
+    fn retrieve(cache: &Cache) -> ConfigResult<Self::Item<'_>>;
+}
+
+impl<T: 'static> FromCache for ConfigRef<'_, T> {
+    type Item<'new> = ConfigRef<'new, T>;
+
+    fn retrieve(cache: &Cache) -> ConfigResult<Self::Item<'_>> {
+        let inner = cache
+            .get(&TypeId::of::<T>())
+            .context(ConfigNotFound {
+                r#type: type_name::<T>(),
+            })?
+            .inner
+            .borrow();
+        Ok(ConfigRef {
+            inner,
+            _marker: PhantomData,
+        })
+    }
+}
+
+impl<T: 'static> FromCache for ConfigMut<'_, T> {
+    type Item<'new> = ConfigMut<'new, T>;
+
+    fn retrieve(cache: &Cache) -> ConfigResult<Self::Item<'_>> {
+        let inner = cache
+            .get(&TypeId::of::<T>())
+            .context(ConfigNotFound {
+                r#type: type_name::<T>(),
+            })?
+            .inner
+            .borrow_mut();
+        Ok(ConfigMut {
+            inner,
+            _marker: PhantomData,
+        })
+    }
+}
+
 impl Config {
     /// Create a new [`Config`] struct.
     /// # Arguments
@@ -125,13 +168,7 @@ impl Config {
     where
         T: Any + 'static,
     {
-        let value = self.cache.get(&TypeId::of::<T>()).context(ConfigNotFound {
-            key: type_name::<T>(),
-        })?;
-        Ok(ConfigRef {
-            inner: value.inner.borrow(),
-            _marker: PhantomData,
-        })
+        ConfigRef::retrieve(&self.cache)
     }
 
     /// Get a mutable ref from the config.
@@ -139,13 +176,7 @@ impl Config {
     where
         T: Any + 'static,
     {
-        let value = self.cache.get(&TypeId::of::<T>()).context(ConfigNotFound {
-            key: type_name::<T>(),
-        })?;
-        Ok(ConfigMut {
-            inner: value.inner.borrow_mut(),
-            _marker: PhantomData,
-        })
+        ConfigMut::retrieve(&self.cache)
     }
 
     /// Add a source to the config.
@@ -162,15 +193,14 @@ impl Config {
     /// The source must implement [`Source`] trait, which is for normal config that does not need to be encrypted or persisted.
     pub fn add_normal_source<T>(&mut self, source: T) -> ConfigResult<()>
     where
-        T: Any + Source + 'static,
+        T: Any + NormalSource + 'static,
     {
-        let value = Box::new(source) as Box<dyn Any>;
         self.cache.insert(
-            (*value).type_id(),
+            source.type_id(),
             CacheValue {
                 #[cfg(feature = "persist")]
                 kind: Kind::Normal,
-                inner: RefCell::new(value),
+                inner: RefCell::new(Box::new(source) as Box<dyn Any>),
             },
         );
         Ok(())
@@ -199,25 +229,5 @@ impl Config {
     #[cfg(feature = "secret")]
     pub fn add_secret_source(&mut self, source: impl SecretSource) -> ConfigResult<()> {
         todo!()
-    }
-}
-
-#[cfg(all(feature = "persist", feature = "mock"))]
-impl Drop for Config {
-    fn drop(&mut self) {
-        for (kind, _) in self.cache.iter() {
-            match kind {
-                Kind::Normal => {}
-                Kind::Persist(path) => {
-                    let path = path.write().unwrap();
-                    std::fs::remove_file(&*path).ok();
-                }
-                #[cfg(feature = "secret")]
-                Kind::Secret(path) => {
-                    let path = path.write().unwrap();
-                    std::fs::remove_file(&*path).ok();
-                }
-            }
-        }
     }
 }

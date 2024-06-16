@@ -9,5 +9,5 @@ encrypt_config = { workspace = true }
 serde = "1"
 
 [[test]]
-name = "encrypter_test"
-path = "encrypter_test.rs"
+name = "normal_test"
+path = "normal_test.rs"

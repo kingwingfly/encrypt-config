@@ -5,10 +5,10 @@ use snafu::Snafu;
 #[snafu(visibility(pub(crate)), context(suffix(false)))]
 pub enum ConfigError {
     /// This error will be returned when the key is not found in the config.
-    #[snafu(display("The type `{}` not found in Config", key))]
+    #[snafu(display("The type `{}` not found in Config", r#type))]
     ConfigNotFound {
-        /// The key which is not found in the config.
-        key: String,
+        /// The type which is not found in the config.
+        r#type: String,
     },
     /// This error will be returned when the value cannot seriliazed or deserialized.
     #[snafu(
