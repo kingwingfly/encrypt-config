@@ -38,7 +38,7 @@ type Cache = HashMap<TypeId, CacheValue>;
 
 /// A struct that can be used to store configuration values.
 /// # Example
-/// See [`Source`], [`PersistSource`], [`SecretSource`]
+/// See [`NormalSource`], [`PersistSource`], [`SecretSource`]
 pub struct Config {
     cache: Cache,
 }
@@ -166,7 +166,7 @@ impl Config {
     }
 
     /// Add a normal source to the config.
-    /// The source must implement [`Source`] trait, which is for normal config that does not need to be encrypted or persisted.
+    /// The source must implement [`NormalSource`] trait, which is for normal config that does not need to be encrypted or persisted.
     pub fn add_normal_source<T>(&mut self) -> ConfigResult<()>
     where
         T: Any + NormalSource + 'static,
