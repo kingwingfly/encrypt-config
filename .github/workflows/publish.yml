@@ -28,10 +28,10 @@ jobs:
       - name: login to crates.io
         run: cargo login ${{ secrets.CRATESIO }}
 
+      - name: publish encrypt_config_derive
+        if: ${{ inputs.encrypt_config_derive }}
+        run: .github/scripts/publish_test.sh encrypt_config_derive && .github/scripts/publish.sh encrypt_config_derive
+
       - name: publish encrypt_config
         if: ${{ inputs.encrypt_config }}
         run: .github/scripts/publish_test.sh encrypt_config && .github/scripts/publish.sh encrypt_config
-
-      - name: publish encrypt_config
-        if: ${{ inputs.encrypt_config_derive }}
-        run: .github/scripts/publish_test.sh encrypt_config_derive && .github/scripts/publish.sh encrypt_config_derive
