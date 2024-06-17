@@ -10,11 +10,11 @@ compile_error!("Feature `mock` is designed only for feature `secret` on.");
 /// The output directory for the generated files when testing.
 pub const TEST_OUT_DIR: &str = concat!(env!("OUT_DIR"), "/encrypt_config_cache");
 
-mod config;
+pub mod config;
 #[cfg(feature = "secret")]
 mod encrypt_utils;
 mod error;
-mod source;
+pub mod source;
 
 pub use config::Config;
 pub use source::*;

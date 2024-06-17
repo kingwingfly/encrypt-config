@@ -1,3 +1,5 @@
+//! Source module for the encrypt-config crate.
+
 mod normal;
 #[cfg(feature = "persist")]
 mod persist;
