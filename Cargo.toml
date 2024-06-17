@@ -1,5 +1,5 @@
 [workspace]
-members = ["encrypt-config", "tests"]
+members = ["encrypt-config", "tests", "examples"]
 resolver = "2"
 
 [workspace.package]

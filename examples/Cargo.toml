@@ -1,0 +1,23 @@
+[package]
+name = "examples"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dev-dependencies]
+encrypt_config = { workspace = true }
+serde = "1"
+const-str = "0.5.7"
+
+[[example]]
+name = "example"
+path = "example.rs"
+required-features = ["secret", "mock"]
+
+[features]
+default = ["full"]
+full = ["persist", "secret", "mock"]
+persist = ["encrypt_config/persist"]
+secret = ["persist", "encrypt_config/secret"]
+mock = ["encrypt_config/mock"]
+default_config_dir = ["encrypt_config/default_config_dir"]

@@ -50,9 +50,6 @@ pub enum ConfigError {
     /// This error will be returned when the config cannot be collected from the source or the default value.
     #[snafu(display("Cannot collect from Source"))]
     CollectFailed,
-    // /// This error will be returned when the mock encrypter built failed.
-    // #[snafu(display("Connot mock encrypter."))]
-    // MockEncrypterFailed,
 }
 
 /// The Result type of `encrypt config`, which is implemented by [`snafu`].
