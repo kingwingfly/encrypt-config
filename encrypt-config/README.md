@@ -101,7 +101,45 @@ This crate also has some optional features:
 ## Usage
 _(You may see many `#[cfg(feature = "...")]` in the example below, if you are not familar to Rust, you may not know this attribute is for `Conditinal Compile`, so that I can test it in `cargo test --all-features` automatically to ensure all go right.)_
 
-You can implement the [`Source`], [`PersistSource`] and [`SecretSource`] yourself.
+You can implement the [`NormalSource`], [`PersistSource`] and [`SecretSource`] yourself.
+
+```rust no_run
+# #[cfg(all(feature = "secret", feature = "mock", feature = "default_config_dir"))]
+# {
+use encrypt_config::{Config, SecretSource};
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Default)]
+struct SecretConfig {
+    value: i32,
+}
+
+impl SecretSource for SecretConfig {
+    const NAME: &'static str = "secret_config.json";
+    const KEY_ENTRY: &'static str = "secret";
+}
+
+fn secret_test() {
+#   std::fs::remove_file(SecretConfig::path()).ok();
+    let mut config = Config::default();
+    config.add_secret_source::<SecretConfig>().unwrap();
+    {
+        let secret_config = config.get::<SecretConfig>().unwrap();
+        assert_eq!(secret_config.value, 0);
+    }
+    let mut secret_config = config.get_mut::<SecretConfig>().unwrap();
+    secret_config.value = 42;
+    assert_eq!(secret_config.value, 42);
+    secret_config.save().unwrap();
+
+    let mut config = Config::default();
+    config.add_secret_source::<SecretConfig>().unwrap();
+    let secret_config = config.get::<SecretConfig>().unwrap();
+    assert_eq!(secret_config.value, 42);
+#   std::fs::remove_file(SecretConfig::path()).ok();
+}
+# }
+```
 
 _For more examples, please refer to the [Example](https://github.com/kingwingfly/encrypt-config/tree/dev/tests) or [Documentation](https://docs.rs/encrypt_config)_
 
