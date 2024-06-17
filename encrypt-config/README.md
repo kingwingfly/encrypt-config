@@ -66,24 +66,23 @@ Sometimes, we need to store config in our application that we don't want to expo
 
 One solution is to store them in the OS' secret manager, such as `Keychain` on macOS, `Credential Manager` on Windows, `libsecret` on Linux.
 
-However, they usually have limitation on the secret length. For example, `Keychain` only allows 255 bytes for the secret,  `Credential Manager` is even shorter. So we can't store a long secret in it.
+However, they usually have limitation on the secret length. For example, `Keychain` only allows 255 bytes for the secret, `Credential Manager` is even shorter. So we can't store a long secret in it.
 
 Another solution is to store the secret in a file and encrypt it with a rsa public key, and store the private key in the OS' secret manager. This is what this crate does.
 
 In other cases, maybe our secret is not a `String`, but a config `struct`. We can also use this crate to manage it. When invoke [`Config::get`], it will deserialize the config from the cache and return it.
 
 This crate provides 3 ways to manage your config:
-- [`Source`]: A normal source, not persisted or encrypted
+- [`NormalSource`]: A normal source, not persisted or encrypted
 - [`PersistSource`]: A source that will be persisted to local file, not encrypted
 - [`SecretSource`]: A source that will be persisted to local file and encrypted
 
 This crate also has some optional features:
 - `persist`: If enabled, you can use the [`PersistSource`] trait.
 - `secret`: If enabled, you can use the [`PersistSource`] and the [`SecretSource`] trait.
-- `mock`: If enabled, you can use the mock for testing, which will not use the OS' secret manager and automatically delete the config file persisted to disk after the test.
-- `derive`: If enabled, you can use the derive macros to implement the [`Source`], [`PersistSource`] and [`SecretSource`] trait.
-- `default_config_dir`: If enabled, the default config dir will be used. Implemented through [dirs-next](https://crates.io/crates/dirs-next).
-- `protobuf`: If enabled, protobuf will be used instead of json for better performance. (Not implemented yet)
+- `mock`: If enabled, you can use the mock for testing, which will not use the OS' secret manager.
+- `default_config_dir`: If enabled, the default config dir will be used. Implemented through [dirs](https://crates.io/crates/dirs).
+- `protobuf`: If enabled, protobuf will be used instead of json for better performance. (WIP)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -103,85 +102,8 @@ This crate also has some optional features:
 _(You may see many `#[cfg(feature = "...")]` in the example below, if you are not familar to Rust, you may not know this attribute is for `Conditinal Compile`, so that I can test it in `cargo test --all-features` automatically to ensure all go right.)_
 
 You can implement the [`Source`], [`PersistSource`] and [`SecretSource`] yourself.
-```rust no_run
-# #[cfg(feature = "secret")]
-# {
-use encrypt_config::{Config, SecretSource};
-use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
-struct Foo(String);
-
-struct SecretSourceImpl;
-
-// impl `SecectSource` trait for `SecretSourceImpl`
-impl SecretSource for SecretSourceImpl {
-	type Value = Foo;
-	type Map = Vec<(String, Self::Value)>;
-
-	#[cfg(not(feature = "default_config_dir"))]
-	fn path(&self) -> std::path::PathBuf {
-		std::path::PathBuf::from("../tests").join("secret.conf")
-	}
-
-	#[cfg(feature = "default_config_dir")]
-	fn source_name(&self) -> String {
-		"secret.conf".to_owned()
-	}
-
-	fn default(&self) -> Result<Self::Map, Box<dyn std::error::Error>> {
-		Ok(vec![("secret".to_owned(), Foo("secret".to_owned()))])
-	}
-}
-
-let mut config = Config::new("test"); // Now it's empty
-let expect = Foo("secret".to_owned());
-config.add_secret_source(SecretSourceImpl).unwrap();
-assert_eq!(config.get::<_, Foo>("secret").unwrap(), expect);
-
-// upgrade the secret
-let new_expect = Foo("new secret".to_owned());
-config.upgrade("secret", &new_expect).unwrap();
-assert_eq!(config.get::<_, Foo>("secret").unwrap(), new_expect);
-
-// read from disk
-let mut config_new = Config::new("test");
-config_new.add_secret_source(SecretSourceImpl).unwrap(); // Read secret config from disk
-assert_eq!(config_new.get::<_, Foo>("secret").unwrap(), new_expect); // The persist source is brought back
-# }
-```
-
-You can also use the derive macros.
-
-```rust no_run
-# #[cfg(all(feature = "derive", feature = "secret"))]
-# {
-use encrypt_config::{PersistSource, SecretSource, Source};
-use serde::{Deserialize, Serialize};
-
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
-struct Foo(String);
-
-// To derive [`Source`]
-#[derive(Source)]
-#[source(value(Foo), default([("key".to_owned(), Foo("value".to_owned()))]))]
-struct SourceFoo;
-
-//To derive [`PersistSource`]
-#[cfg(not(feature = "default_config_dir"))]
-#[derive(PersistSource)]
-#[source(value(Foo), path("tests/persist.conf"), default([("key".to_owned(), Foo("value".to_owned()))]))]
-struct PersistSourceFoo;
-
-// To derive [`SecretSource`]
-#[cfg(not(feature = "default_config_dir"))]
-#[derive(SecretSource)]
-#[source(value(Foo), path("tests/secret.conf"), default([("key".to_owned(), Foo("value".to_owned()))]))]
-struct SecretSourceFoo;
-# }
-```
-
-_For more examples, please refer to the [Example](https://github.com/kingwingfly/encrypt-config/blob/dev/examples) or [Documentation](https://docs.rs/encrypt_config)_
+_For more examples, please refer to the [Example](https://github.com/kingwingfly/encrypt-config/tree/dev/tests) or [Documentation](https://docs.rs/encrypt_config)_
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

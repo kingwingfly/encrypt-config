@@ -1,8 +1,6 @@
 //! # Config
 //! This module provides a [`Config`] struct that can be used to store configuration values.
 
-#[cfg(feature = "secret")]
-use crate::encrypt_utils::Encrypter;
 #[cfg(feature = "persist")]
 use crate::PersistSource;
 #[cfg(feature = "secret")]
@@ -11,15 +9,13 @@ use crate::{
     error::{ConfigNotFound, ConfigResult},
     NormalSource,
 };
-use serde::{Deserialize, Serialize};
-use snafu::OptionExt as _;
 #[cfg(feature = "persist")]
-use std::path::PathBuf;
+use serde::Deserialize;
+use snafu::OptionExt as _;
 use std::{
     any::{type_name, Any, TypeId},
     cell::{Ref, RefCell, RefMut},
     collections::HashMap,
-    io,
     marker::PhantomData,
     ops::{Deref, DerefMut},
 };
@@ -38,15 +34,6 @@ enum CacheValue {
     },
 }
 
-#[cfg(feature = "persist")]
-#[derive(Serialize, Deserialize)]
-pub enum Kind {
-    Normal,
-    Persist(PathBuf),
-    #[cfg(feature = "secret")]
-    Secret(PathBuf),
-}
-
 type Cache = HashMap<TypeId, CacheValue>;
 
 /// A struct that can be used to store configuration values.
@@ -54,8 +41,6 @@ type Cache = HashMap<TypeId, CacheValue>;
 /// See [`Source`], [`PersistSource`], [`SecretSource`]
 pub struct Config {
     cache: Cache,
-    #[cfg(feature = "secret")]
-    encrypter: &'static Encrypter,
 }
 
 impl Default for Config {
@@ -65,10 +50,7 @@ impl Default for Config {
         doc = "The default keyring entry is `encrypt_config`"
     )]
     fn default() -> Self {
-        Self::new(
-            #[cfg(feature = "secret")]
-            "encrypt_config",
-        )
+        Self::new()
     }
 }
 
@@ -118,7 +100,10 @@ impl<T: 'static> FromCache for ConfigRef<'_, T> {
             r#type: type_name::<T>(),
         })? {
             CacheValue::Normal { inner } => inner.borrow(),
+            #[cfg(feature = "persist")]
             CacheValue::Persist { inner, .. } => inner.borrow(),
+            #[cfg(feature = "secret")]
+            CacheValue::Secret { inner, .. } => inner.borrow(),
         };
         Ok(ConfigRef {
             inner,
@@ -135,7 +120,10 @@ impl<T: 'static> FromCache for ConfigMut<'_, T> {
             r#type: type_name::<T>(),
         })? {
             CacheValue::Normal { inner } => inner.borrow_mut(),
+            #[cfg(feature = "persist")]
             CacheValue::Persist { inner, .. } => inner.borrow_mut(),
+            #[cfg(feature = "secret")]
+            CacheValue::Secret { inner, .. } => inner.borrow_mut(),
         };
         Ok(ConfigMut {
             inner,
@@ -146,9 +134,6 @@ impl<T: 'static> FromCache for ConfigMut<'_, T> {
 
 impl Config {
     /// Create a new [`Config`] struct.
-    /// # Arguments
-    /// * `config_name` - The name of the rsa private key stored by `keyring`. Only needed when feature `secret` is on.
-    ///
     #[cfg_attr(
         feature = "persist",
         doc = "To avoid manually delete the config file persisted during testing, you can enable `mock` feature. This will impl `Drop` for `Config` which automatically delete the config file persisted."
@@ -158,11 +143,9 @@ impl Config {
         feature = "secret",
         doc = "To avoid entering the password during testing, you can enable `mock` feature. This can always return `Config`s with the **same** Encrypter during **each** test."
     )]
-    pub fn new(#[cfg(feature = "secret")] keyring_entry: impl AsRef<str>) -> Self {
+    pub fn new() -> Self {
         Self {
             cache: Cache::new(),
-            #[cfg(feature = "secret")]
-            encrypter: Encrypter::new(keyring_entry).unwrap(),
         }
     }
 
@@ -180,12 +163,6 @@ impl Config {
         T: Any + 'static,
     {
         ConfigMut::retrieve(&self.cache)
-    }
-
-    /// Add a source to the config.
-    pub fn add_source<T>(&mut self, #[cfg(feature = "persist")] kind: Kind) -> ConfigResult<()> {
-        let _ = kind;
-        Ok(())
     }
 
     /// Add a normal source to the config.
@@ -211,12 +188,7 @@ impl Config {
         T: Any + PersistSource + 'static,
         for<'de> T: Deserialize<'de>,
     {
-        let path = T::path();
-        let value: T = std::fs::File::open(path)
-            .and_then(|f| {
-                serde_json::from_reader(f).map_err(|_| io::Error::from(io::ErrorKind::InvalidData))
-            })
-            .unwrap_or_default();
+        let value: T = T::load().unwrap_or_default();
         self.cache.insert(
             TypeId::of::<T>(),
             CacheValue::Persist {
@@ -229,7 +201,18 @@ impl Config {
     /// Add a secret source to the config.
     /// The source must implement [`SecretSource`] trait, which is for config that needs to be encrypted and persisted.
     #[cfg(feature = "secret")]
-    pub fn add_secret_source(&mut self, source: impl SecretSource) -> ConfigResult<()> {
-        todo!()
+    pub fn add_secret_source<T>(&mut self) -> ConfigResult<()>
+    where
+        T: Any + SecretSource + 'static,
+        for<'de> T: Deserialize<'de>,
+    {
+        let value: T = T::load().unwrap_or_default();
+        self.cache.insert(
+            TypeId::of::<T>(),
+            CacheValue::Secret {
+                inner: RefCell::new(Box::new(value)),
+            },
+        );
+        Ok(())
     }
 }

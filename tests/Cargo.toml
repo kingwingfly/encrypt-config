@@ -18,7 +18,14 @@ name = "persist_test"
 path = "persist_test.rs"
 required-features = ["persist"]
 
+[[test]]
+name = "secret_test"
+path = "secret_test.rs"
+required-features = ["secret", "mock"]
+
 [features]
-default = ["persist"]
+default = []
 persist = ["encrypt_config/persist"]
+secret = ["persist", "encrypt_config/secret"]
+mock = ["encrypt_config/mock"]
 default_config_dir = ["encrypt_config/default_config_dir"]

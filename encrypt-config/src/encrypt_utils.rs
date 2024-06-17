@@ -2,11 +2,8 @@
 //! Encryption helper.
 
 use crate::error::{ConfigError, ConfigResult};
-#[cfg(not(feature = "mock"))]
 use keyring::Entry;
 use rsa::{Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
-#[cfg(not(feature = "mock"))]
-use snafu::ResultExt;
 use std::sync::OnceLock;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -15,9 +12,6 @@ use std::sync::OnceLock;
 pub struct Encrypter {
     priv_key: RsaPrivateKey,
 }
-
-pub(crate) type Encrypted = Vec<u8>;
-pub(crate) type Decrypted = Vec<u8>;
 
 impl Default for Encrypter {
     fn default() -> Self {
@@ -44,7 +38,7 @@ impl Encrypter {
                         let new_enc = Encrypter::default();
                         entry
                             .set_password(&serde_json::to_string(&new_enc).unwrap())
-                            .map_err(|_| ConfigError::KeyringError);
+                            .map_err(|_| ConfigError::KeyringError)?;
                         Ok(new_enc)
                     }
                     Err(_) => Err(ConfigError::KeyringError),
@@ -54,22 +48,12 @@ impl Encrypter {
             .map_err(|_| ConfigError::KeyringError)
     }
 
-    pub(crate) fn encrypt<S: serde::Serialize>(&self, to_encrypt: &S) -> ConfigResult<Encrypted> {
+    pub(crate) fn encrypt<T: serde::Serialize>(&self, to_encrypt: &T) -> ConfigResult<Vec<u8>> {
         let origin = serde_json::to_vec(to_encrypt)?;
         self.encrypt_serded(&origin)
     }
 
-    /// This is used to encrypt seriliazed Value.
-    /// # Arguments
-    /// * origin - The returning of `serde_json::to_vec`
-    /// # Example
-    /// ```ignore
-    /// let foo = Foo::new();
-    /// let serded = serde_json::to_vec(&foo)?;
-    /// let encrypter = Encrypter::new("test")?;
-    /// let encrypted = encrypter.encrypt_serded(serded)?;
-    /// ```
-    fn encrypt_serded(&self, origin: &[u8]) -> ConfigResult<Encrypted> {
+    fn encrypt_serded(&self, origin: &[u8]) -> ConfigResult<Vec<u8>> {
         let mut rng = rand::thread_rng();
         #[cfg(not(target_os = "windows"))]
         const CHUNK_SIZE: usize = 245; // (2048 >> 3) - 11
@@ -83,7 +67,10 @@ impl Encrypter {
         Ok(encrypted)
     }
 
-    pub(crate) fn decrypt(&self, encrypted: &[u8]) -> ConfigResult<Decrypted> {
+    pub(crate) fn decrypt<T>(&self, encrypted: &[u8]) -> ConfigResult<T>
+    where
+        for<'de> T: serde::Deserialize<'de>,
+    {
         #[cfg(not(target_os = "windows"))]
         const CHUNK_SIZE: usize = 256;
         #[cfg(target_os = "windows")]
@@ -92,11 +79,10 @@ impl Encrypter {
         for c in encrypted.chunks(CHUNK_SIZE) {
             decrypted.extend(self.priv_key.decrypt(Pkcs1v15Encrypt, c)?);
         }
-        Ok(decrypted)
+        Ok(serde_json::from_slice(&decrypted)?)
     }
 }
 
-#[cfg(not(feature = "mock"))]
 fn keyring_entry(secret_name: impl AsRef<str>) -> ConfigResult<&'static Entry> {
     #[cfg(feature = "mock")]
     keyring::set_default_credential_builder(keyring::mock::default_credential_builder());

@@ -1,5 +1,4 @@
-use const_str::concat;
-use encrypt_config::{Config, PersistSource, TEST_OUT_DIR};
+use encrypt_config::{Config, PersistSource};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Default)]
@@ -9,13 +8,15 @@ struct PersistConfig {
 
 impl PersistSource for PersistConfig {
     #[cfg(not(feature = "default_config_dir"))]
-    const PATH: &'static str = concat!(TEST_OUT_DIR, "/persist_config.json");
+    const PATH: &'static str =
+        const_str::concat!(encrypt_config::TEST_OUT_DIR, "/persist_config.json");
     #[cfg(feature = "default_config_dir")]
     const NAME: &'static str = "persist_config.json";
 }
 
 #[test]
 fn persist_test() {
+    std::fs::remove_file(PersistConfig::path()).ok();
     let mut config = Config::default();
     config.add_persist_source::<PersistConfig>().unwrap();
     {

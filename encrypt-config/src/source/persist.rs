@@ -23,6 +23,13 @@ pub trait PersistSource: Serialize + for<'de> Deserialize<'de> + Default {
         path
     }
 
+    /// Load the config from the file.
+    fn load() -> ConfigResult<Self> {
+        let path = Self::path();
+        let file = std::fs::File::open(path)?;
+        Ok(serde_json::from_reader(file)?)
+    }
+
     /// Save the config to the file.
     fn save(&self) -> ConfigResult<()> {
         let path = Self::path();
