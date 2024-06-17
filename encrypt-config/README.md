@@ -49,6 +49,7 @@
       </ul>
     </li>
     <li><a href="#usage">Usage</a></li>
+    <li><a href="#changelog">Changelog</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
     <li><a href="#contributing">Contributing</a></li>
     <li><a href="#license">License</a></li>
@@ -69,8 +70,6 @@ One solution is to store them in the OS' secret manager, such as `Keychain` on m
 However, they usually have limitation on the secret length. For example, `Keychain` only allows 255 bytes for the secret, `Credential Manager` is even shorter. So we can't store a long secret in it.
 
 Another solution is to store the secret in a file and encrypt it with a rsa public key, and store the private key in the OS' secret manager. This is what this crate does.
-
-In other cases, maybe our secret is not a `String`, but a config `struct`. We can also use this crate to manage it. When invoke [`Config::get`], it will deserialize the config from the cache and return it.
 
 This crate provides 3 ways to manage your config:
 - [`NormalSource`]: A normal source, not persisted or encrypted
@@ -145,6 +144,13 @@ _For more examples, please refer to the [Example](https://github.com/kingwingfly
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+
+<!-- CHANGELOG -->
+## Changelog
+
+- v0.1.x -> v0.2.x: A broken change has been made. Heavily refactored with `std::any` and methods from `dependencies injection`. 
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
 <!-- ROADMAP -->
