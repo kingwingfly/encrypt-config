@@ -14,18 +14,18 @@ use serde::Deserialize;
 use snafu::OptionExt as _;
 use std::{
     any::{type_name, Any, TypeId},
-    cell::{Ref, RefCell, RefMut},
     collections::HashMap,
     marker::PhantomData,
     ops::{Deref, DerefMut},
+    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
 struct CacheValue {
-    inner: RefCell<Box<dyn Any + Send + Sync>>,
+    inner: Arc<RwLock<Box<dyn Any + Send + Sync>>>,
 }
 
-unsafe impl Send for CacheValue {}
-unsafe impl Sync for CacheValue {}
+// unsafe impl Send for CacheValue {}
+// unsafe impl Sync for CacheValue {}
 
 type Cache = HashMap<TypeId, CacheValue>;
 
@@ -44,12 +44,12 @@ impl Default for Config {
 }
 
 pub struct ConfigRef<'a, T: 'static> {
-    inner: Ref<'a, Box<dyn Any + Send + Sync>>,
+    guard: RwLockReadGuard<'a, Box<dyn Any + Send + Sync>>,
     _marker: PhantomData<&'a T>,
 }
 
 pub struct ConfigMut<'a, T: 'static> {
-    inner: RefMut<'a, Box<dyn Any + Send + Sync>>,
+    guard: RwLockWriteGuard<'a, Box<dyn Any + Send + Sync>>,
     _marker: PhantomData<&'a mut T>,
 }
 
@@ -57,7 +57,7 @@ impl<T: 'static> Deref for ConfigRef<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &T {
-        self.inner.downcast_ref().unwrap()
+        self.guard.downcast_ref().unwrap()
     }
 }
 
@@ -65,13 +65,13 @@ impl<T: 'static> Deref for ConfigMut<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &T {
-        self.inner.downcast_ref().unwrap()
+        self.guard.downcast_ref().unwrap()
     }
 }
 
 impl<T: 'static> DerefMut for ConfigMut<'_, T> {
     fn deref_mut(&mut self) -> &mut T {
-        self.inner.downcast_mut().unwrap()
+        self.guard.downcast_mut().unwrap()
     }
 }
 
@@ -85,15 +85,16 @@ impl<T: 'static> FromCache for ConfigRef<'_, T> {
     type Item<'new> = ConfigRef<'new, T>;
 
     fn retrieve(cache: &Cache) -> ConfigResult<Self::Item<'_>> {
-        let inner = cache
+        let guard = cache
             .get(&TypeId::of::<T>())
             .context(ConfigNotFound {
                 r#type: type_name::<T>(),
             })?
             .inner
-            .borrow();
+            .read()
+            .unwrap();
         Ok(ConfigRef {
-            inner,
+            guard,
             _marker: PhantomData,
         })
     }
@@ -103,15 +104,16 @@ impl<T: 'static> FromCache for ConfigMut<'_, T> {
     type Item<'new> = ConfigMut<'new, T>;
 
     fn retrieve(cache: &Cache) -> ConfigResult<Self::Item<'_>> {
-        let inner = cache
+        let guard = cache
             .get(&TypeId::of::<T>())
             .context(ConfigNotFound {
                 r#type: type_name::<T>(),
             })?
             .inner
-            .borrow_mut();
+            .write()
+            .unwrap();
         Ok(ConfigMut {
-            inner,
+            guard,
             _marker: PhantomData,
         })
     }
@@ -159,7 +161,7 @@ impl Config {
         self.cache.insert(
             TypeId::of::<T>(),
             CacheValue {
-                inner: RefCell::new(Box::new(T::default())),
+                inner: Arc::new(RwLock::new(Box::new(T::default()))),
             },
         );
         Ok(())
@@ -177,7 +179,7 @@ impl Config {
         self.cache.insert(
             TypeId::of::<T>(),
             CacheValue {
-                inner: RefCell::new(Box::new(value)),
+                inner: Arc::new(RwLock::new(Box::new(value))),
             },
         );
         Ok(())
@@ -195,7 +197,7 @@ impl Config {
         self.cache.insert(
             TypeId::of::<T>(),
             CacheValue {
-                inner: RefCell::new(Box::new(value)),
+                inner: Arc::new(RwLock::new(Box::new(value))),
             },
         );
         Ok(())
