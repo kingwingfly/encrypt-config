@@ -13,7 +13,7 @@ impl SecretSource for SecretConfig {
     #[cfg(feature = "default_config_dir")]
     const NAME: &'static str = "secret_config.json";
 
-    const KEY_ENTRY: &'static str = "secret";
+    const KEYRING_ENTRY: &'static str = "secret";
 }
 
 #[test]

@@ -6,18 +6,20 @@ publish = false
 
 [dev-dependencies]
 encrypt_config = { workspace = true }
-serde = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1" }
 const-str = "0.5.7"
 
 [[example]]
 name = "example"
 path = "example.rs"
-required-features = ["secret", "mock"]
+required-features = ["full", "mock"]
 
 [features]
-default = ["full"]
-full = ["persist", "secret", "mock"]
+default = []
+full = ["persist", "secret", "derive"]
 persist = ["encrypt_config/persist"]
 secret = ["persist", "encrypt_config/secret"]
+derive = ["encrypt_config/derive"]
 mock = ["encrypt_config/mock"]
 default_config_dir = ["encrypt_config/default_config_dir"]

@@ -13,7 +13,7 @@ pub trait SecretSource: Serialize + for<'de> Deserialize<'de> + Default {
     #[cfg(feature = "default_config_dir")]
     const NAME: &'static str;
     /// The keyring entry name.
-    const KEY_ENTRY: &'static str;
+    const KEYRING_ENTRY: &'static str;
 
     /// Return the path to the config file.
     fn path() -> PathBuf {
@@ -30,18 +30,18 @@ pub trait SecretSource: Serialize + for<'de> Deserialize<'de> + Default {
     fn load() -> ConfigResult<Self> {
         let path = Self::path();
         let file = std::fs::File::open(path)?;
-        let encrypter = Encrypter::new(Self::KEY_ENTRY)?;
+        let encrypter = Encrypter::new(Self::KEYRING_ENTRY)?;
         let encrypted: Vec<u8> = std::io::Read::bytes(file).collect::<Result<_, _>>()?;
         encrypter.decrypt(&encrypted)
     }
 
-    /// Save the config to the file.
+    /// Save and encrypt the config to the file.
     fn save(&self) -> ConfigResult<()> {
         let path = Self::path();
         let parent = path.parent().unwrap();
         std::fs::create_dir_all(parent).unwrap();
         let mut file = std::fs::File::create(path).unwrap();
-        let encrypter = Encrypter::new(Self::KEY_ENTRY)?;
+        let encrypter = Encrypter::new(Self::KEYRING_ENTRY)?;
         let encrypted = encrypter.encrypt(self)?;
         file.write_all(&encrypted)?;
         file.flush()?;

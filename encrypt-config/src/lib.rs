@@ -18,3 +18,6 @@ mod source;
 
 pub use config::Config;
 pub use source::*;
+
+#[cfg(feature = "derive")]
+pub use encrypt_config_derive::*;

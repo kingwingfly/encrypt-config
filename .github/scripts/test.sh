@@ -16,6 +16,8 @@ statements=(
     "cargo test --features secret,mock"
     "cargo test --features secret,mock,default_config_dir"
 
+    "cargo run --example example --features full,mock"
+
     "cargo doc --no-deps --features full"
 )
 

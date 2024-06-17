@@ -1,0 +1,32 @@
+[package]
+name = "encrypt_config_derive"
+version.workspace = true
+authors.workspace = true
+description.workspace = true
+license.workspace = true
+edition.workspace = true
+repository.workspace = true
+documentation.workspace = true
+keywords = ["config", "encryption"]
+
+[package.metadata.docs.rs]
+features = ["full"]
+rustdoc-args = ["--cfg", "docsrs"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { version = "2", features = ["full"] }
+quote = "1.0"
+
+[dev-dependencies]
+serde = { version = "1", features = ["derive"] }
+encrypt_config = { workspace = true }
+
+[features]
+default = []
+full = ["persist", "secret"]
+persist = []
+secret = ["persist"]
+default_config_dir = []
