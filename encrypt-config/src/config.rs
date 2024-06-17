@@ -1,8 +1,6 @@
 //! # Config
 //! This module provides a [`Config`] struct that can be used to store configuration values.
 
-use snafu::OptionExt as _;
-
 #[cfg(feature = "secret")]
 use crate::encrypt_utils::Encrypter;
 #[cfg(feature = "persist")]
@@ -13,29 +11,36 @@ use crate::{
     error::{ConfigNotFound, ConfigResult},
     NormalSource,
 };
+use serde::{Deserialize, Serialize};
+use snafu::OptionExt as _;
+#[cfg(feature = "persist")]
+use std::path::PathBuf;
 use std::{
     any::{type_name, Any, TypeId},
     cell::{Ref, RefCell, RefMut},
     collections::HashMap,
+    io,
     marker::PhantomData,
     ops::{Deref, DerefMut},
 };
-#[cfg(feature = "persist")]
-use std::{path::PathBuf, sync::RwLock};
 
-#[cfg(feature = "persist")]
-struct CacheValue {
-    kind: Kind,
-    inner: RefCell<Box<dyn Any>>,
+enum CacheValue {
+    Normal {
+        inner: RefCell<Box<dyn Any>>,
+    },
+    #[cfg(feature = "persist")]
+    Persist {
+        inner: RefCell<Box<dyn Any>>,
+    },
+    #[cfg(feature = "secret")]
+    Secret {
+        inner: RefCell<Box<dyn Any>>,
+    },
 }
 
-#[cfg(not(feature = "persist"))]
-struct CacheValue {
-    inner: RefCell<Box<dyn Any>>,
-}
-
 #[cfg(feature = "persist")]
-enum Kind {
+#[derive(Serialize, Deserialize)]
+pub enum Kind {
     Normal,
     Persist(PathBuf),
     #[cfg(feature = "secret")]
@@ -74,7 +79,7 @@ pub struct ConfigRef<'a, T: 'static> {
 
 pub struct ConfigMut<'a, T: 'static> {
     inner: RefMut<'a, Box<dyn Any>>,
-    _marker: PhantomData<&'a T>,
+    _marker: PhantomData<&'a mut T>,
 }
 
 impl<T: 'static> Deref for ConfigRef<'_, T> {
@@ -109,13 +114,12 @@ impl<T: 'static> FromCache for ConfigRef<'_, T> {
     type Item<'new> = ConfigRef<'new, T>;
 
     fn retrieve(cache: &Cache) -> ConfigResult<Self::Item<'_>> {
-        let inner = cache
-            .get(&TypeId::of::<T>())
-            .context(ConfigNotFound {
-                r#type: type_name::<T>(),
-            })?
-            .inner
-            .borrow();
+        let inner = match cache.get(&TypeId::of::<T>()).context(ConfigNotFound {
+            r#type: type_name::<T>(),
+        })? {
+            CacheValue::Normal { inner } => inner.borrow(),
+            CacheValue::Persist { inner, .. } => inner.borrow(),
+        };
         Ok(ConfigRef {
             inner,
             _marker: PhantomData,
@@ -127,13 +131,12 @@ impl<T: 'static> FromCache for ConfigMut<'_, T> {
     type Item<'new> = ConfigMut<'new, T>;
 
     fn retrieve(cache: &Cache) -> ConfigResult<Self::Item<'_>> {
-        let inner = cache
-            .get(&TypeId::of::<T>())
-            .context(ConfigNotFound {
-                r#type: type_name::<T>(),
-            })?
-            .inner
-            .borrow_mut();
+        let inner = match cache.get(&TypeId::of::<T>()).context(ConfigNotFound {
+            r#type: type_name::<T>(),
+        })? {
+            CacheValue::Normal { inner } => inner.borrow_mut(),
+            CacheValue::Persist { inner, .. } => inner.borrow_mut(),
+        };
         Ok(ConfigMut {
             inner,
             _marker: PhantomData,
@@ -180,27 +183,21 @@ impl Config {
     }
 
     /// Add a source to the config.
-    pub fn add_source<T>(
-        &mut self,
-        #[cfg(feature = "persist")] kind: Kind,
-        source: T,
-    ) -> ConfigResult<()> {
-        let _ = source;
+    pub fn add_source<T>(&mut self, #[cfg(feature = "persist")] kind: Kind) -> ConfigResult<()> {
+        let _ = kind;
         Ok(())
     }
 
     /// Add a normal source to the config.
     /// The source must implement [`Source`] trait, which is for normal config that does not need to be encrypted or persisted.
-    pub fn add_normal_source<T>(&mut self, source: T) -> ConfigResult<()>
+    pub fn add_normal_source<T>(&mut self) -> ConfigResult<()>
     where
         T: Any + NormalSource + 'static,
     {
         self.cache.insert(
-            source.type_id(),
-            CacheValue {
-                #[cfg(feature = "persist")]
-                kind: Kind::Normal,
-                inner: RefCell::new(Box::new(source) as Box<dyn Any>),
+            TypeId::of::<T>(),
+            CacheValue::Normal {
+                inner: RefCell::new(Box::new(T::default()) as Box<dyn Any>),
             },
         );
         Ok(())
@@ -209,16 +206,21 @@ impl Config {
     /// Add a persist source to the config.
     /// The source must implement [`PersistSource`] trait, which is for config that needs to be persisted.
     #[cfg(feature = "persist")]
-    pub fn add_persist_source<T>(&mut self, source: T) -> ConfigResult<()>
+    pub fn add_persist_source<T>(&mut self) -> ConfigResult<()>
     where
         T: Any + PersistSource + 'static,
+        for<'de> T: Deserialize<'de>,
     {
-        let value = Box::new(source) as Box<dyn Any>;
+        let path = T::path();
+        let value: T = std::fs::File::open(path)
+            .and_then(|f| {
+                serde_json::from_reader(f).map_err(|_| io::Error::from(io::ErrorKind::InvalidData))
+            })
+            .unwrap_or_default();
         self.cache.insert(
-            (*value).type_id(),
-            CacheValue {
-                kind: Kind::Persist(path),
-                inner: RefCell::new(value),
+            TypeId::of::<T>(),
+            CacheValue::Persist {
+                inner: RefCell::new(Box::new(value)),
             },
         );
         Ok(())

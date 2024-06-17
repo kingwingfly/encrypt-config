@@ -7,7 +7,18 @@ publish = false
 [dev-dependencies]
 encrypt_config = { workspace = true }
 serde = "1"
+const-str = "0.5.7"
 
 [[test]]
 name = "normal_test"
 path = "normal_test.rs"
+
+[[test]]
+name = "persist_test"
+path = "persist_test.rs"
+required-features = ["persist"]
+
+[features]
+default = ["persist"]
+persist = ["encrypt_config/persist"]
+default_config_dir = ["encrypt_config/default_config_dir"]

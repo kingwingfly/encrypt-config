@@ -9,6 +9,9 @@ compile_error!("Feature `save_on_change` is designed only for feature `persist` 
 #[cfg(all(not(feature = "persist"), feature = "mock"))]
 compile_error!("Feature `mock` is designed only for feature `persist` on.");
 
+/// The output directory for the generated files when testing.
+pub const TEST_OUT_DIR: &str = concat!(env!("OUT_DIR"), "/encrypt_config_cache");
+
 mod config;
 #[cfg(feature = "secret")]
 mod encrypt_utils;
