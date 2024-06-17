@@ -13,7 +13,7 @@ documentation = "https://docs.rs/encrypt-config"
 
 [workspace.dependencies]
 encrypt_config = { path = "encrypt-config" }
-encrypt_config_derive = { path = "encrypt-config-derive" }
+encrypt_config_derive = { path = "encrypt-config-derive", version = "0.2.2" }
 
 [profile.dev]
 opt-level = 3
