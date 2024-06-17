@@ -15,6 +15,8 @@ statements=(
     "cargo test --features persist,default_config_dir"
     "cargo test --features secret,mock"
     "cargo test --features secret,mock,default_config_dir"
+
+    "cargo doc --no-deps --features full"
 )
 
 # loop echo and executing statements

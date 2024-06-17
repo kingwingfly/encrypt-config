@@ -7,10 +7,6 @@ on:
         description: "publish encrypt_config"
         type: boolean
         default: false
-      encrypt_config_derive:
-        description: "publish encrypt_config_derive"
-        type: boolean
-        default: false
 
 env:
   CARGO_TERM_COLOR: always
@@ -30,7 +26,3 @@ jobs:
       - name: publish encrypt_config
         if: ${{ inputs.gpt_core }}
         run: .github/scripts/publish_test.sh encrypt_config && .github/scripts/publish.sh encrypt_config
-
-      - name: publish encrypt_config_derive
-        if: ${{ inputs.gpt_ui }}
-        run: .github/scripts/publish_test.sh encrypt_config_derive && .github/scripts/publish.sh encrypt_config_derive
