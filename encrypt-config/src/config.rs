@@ -155,6 +155,25 @@ impl Config {
         ConfigMut::retrieve(&self.cache)
     }
 
+    /// Take the ownership of the config value.
+    /// This will remove the value from the config.
+    pub fn take<T>(&mut self) -> ConfigResult<T>
+    where
+        T: Any + 'static,
+    {
+        let value = self
+            .cache
+            .remove(&TypeId::of::<T>())
+            .context(ConfigNotFound {
+                r#type: type_name::<T>(),
+            })?;
+        let value = value
+            .inner
+            .into_inner()
+            .expect("EncryptConfig: Rwlock is poisoned");
+        Ok(*value.downcast().unwrap())
+    }
+
     /// Add a normal source to the config.
     /// The source must implement [`NormalSource`] trait, which is for normal config that does not need to be encrypted or persisted.
     ///
