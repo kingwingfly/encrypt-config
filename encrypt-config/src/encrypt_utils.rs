@@ -32,9 +32,9 @@ impl Encrypter {
         static ENCRYPTERS: OnceLock<RwLock<HashMap<String, &'static Encrypter>>> = OnceLock::new();
         let encrypters = ENCRYPTERS.get_or_init(|| RwLock::new(HashMap::new()));
         let mut encrypters = encrypters.write().unwrap();
-        // Why not `read` to examine, then `write` to insert if not exists?
-        // Because many threads may try examining at the same time, and all of them may find
-        // the entry not exists. Then all of them will try to insert, which is not what we want.
+        // Why not `read` to check, then `write` to insert if not exists?
+        // Because many threads may try checking at the same time, and some of them may find
+        // the entry not exists then they will try to insert, which is not what we want.
         if let Some(encrypter) = encrypters.get(secret_name.as_ref()) {
             return Ok(encrypter);
         }
