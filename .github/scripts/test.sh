@@ -5,20 +5,20 @@ export TERM=xterm-256color
 
 # Statements waiting to be executed
 statements=(
-    "cargo clippy --all-targets -- -D warnings"
-    "cargo clippy --all-targets --features persist -- -D warnings"
-    "cargo clippy --all-targets --features secret -- -D warnings"
-    "cargo clippy --all-targets --features secret,mock -- -D warnings"
+    "cargo clippy --all-targets --no-default-features -- -D warnings"
+    "cargo clippy --all-targets --no-default-features --features persist -- -D warnings"
+    "cargo clippy --all-targets --no-default-features --features secret -- -D warnings"
+    "cargo clippy --all-targets --no-default-features --features secret,mock -- -D warnings"
 
-    "cargo test"
-    "cargo test --features persist"
-    "cargo test --features persist,default_config_dir"
-    "cargo test --features secret,mock"
-    "cargo test --features secret,mock,default_config_dir"
+    "cargo test --no-default-features"
+    "cargo test --no-default-features --features persist"
+    "cargo test --no-default-features --features persist,default_config_dir"
+    "cargo test --no-default-features --features secret,mock"
+    "cargo test --no-default-features --features secret,mock,default_config_dir"
 
-    "cargo run --example example --features full,mock"
+    "cargo run --example example --no-default-features --features full,mock"
 
-    "cargo doc --no-deps --features full"
+    "cargo doc --no-deps --no-default-features --features full"
 )
 
 # loop echo and executing statements

@@ -3,7 +3,7 @@ members = ["encrypt-config", "encrypt-config-derive", "tests", "examples"]
 resolver = "2"
 
 [workspace.package]
-version = "0.2.3"
+version = "0.2.4"
 authors = ["Louis <836250617@qq.com>"]
 description = "A Rust crate to manage, persist and encrypt your configurations."
 license = "MIT"
@@ -13,7 +13,7 @@ documentation = "https://docs.rs/encrypt-config"
 
 [workspace.dependencies]
 encrypt_config = { path = "encrypt-config" }
-encrypt_config_derive = { path = "encrypt-config-derive", version = "0.2.2" }
+encrypt_config_derive = { path = "encrypt-config-derive", version = "0.2.4" }
 
 [profile.dev]
 opt-level = 3

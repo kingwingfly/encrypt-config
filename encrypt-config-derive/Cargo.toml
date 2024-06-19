@@ -1,6 +1,6 @@
 [package]
 name = "encrypt_config_derive"
-version = "0.2.2"
+version.workspace = true
 authors.workspace = true
 description.workspace = true
 license.workspace = true
@@ -22,11 +22,11 @@ quote = "1.0"
 
 [dev-dependencies]
 serde = { version = "1", features = ["derive"] }
-encrypt_config = { workspace = true }
+encrypt_config = { workspace = true, default-features = false }
 
 [features]
 default = []
-full = ["persist", "secret"]
-persist = []
-secret = ["persist"]
-default_config_dir = []
+full = ["persist", "secret", "encrypt_config/full"]
+persist = ["encrypt_config/persist"]
+secret = ["persist", "encrypt_config/secret"]
+default_config_dir = ["encrypt_config/default_config_dir"]

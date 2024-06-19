@@ -4,11 +4,13 @@
 use crate::error::{ConfigError, ConfigResult};
 use keyring::Entry;
 use rsa::{Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
-use std::sync::OnceLock;
+use std::{
+    collections::HashMap,
+    sync::{OnceLock, RwLock},
+};
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(feature = "mock", derive(Clone))]
-#[cfg_attr(test, derive(PartialEq))]
+#[derive(serde::Serialize, serde::Deserialize)]
+#[cfg_attr(test, derive(PartialEq, Debug))]
 pub struct Encrypter {
     priv_key: RsaPrivateKey,
 }
@@ -27,25 +29,39 @@ impl Default for Encrypter {
 
 impl Encrypter {
     pub(crate) fn new(secret_name: impl AsRef<str>) -> ConfigResult<&'static Self> {
-        static ENCRYPTER: OnceLock<ConfigResult<Encrypter>> = OnceLock::new();
-        ENCRYPTER
-            .get_or_init(|| {
-                let entry = keyring_entry(secret_name)?;
-                match entry.get_password() {
-                    Ok(serded_enc) => serde_json::from_str(&serded_enc)
-                        .map_err(|_| ConfigError::LoadEncrypterFailed),
-                    Err(keyring::Error::NoEntry) => {
-                        let new_enc = Encrypter::default();
-                        entry
-                            .set_password(&serde_json::to_string(&new_enc).unwrap())
-                            .map_err(|_| ConfigError::KeyringError)?;
-                        Ok(new_enc)
-                    }
-                    Err(_) => Err(ConfigError::KeyringError),
-                }
-            })
-            .as_ref()
-            .map_err(|_| ConfigError::KeyringError)
+        static ENCRYPTERS: OnceLock<RwLock<HashMap<String, &'static Encrypter>>> = OnceLock::new();
+        let encrypters = ENCRYPTERS.get_or_init(|| RwLock::new(HashMap::new()));
+        {
+            let encrypters = encrypters.read().unwrap();
+            if let Some(encrypter) = encrypters.get(secret_name.as_ref()) {
+                return Ok(encrypter);
+            }
+        }
+        // Should create a new encrypter.
+        {
+            let mut encrypters = encrypters.write().unwrap();
+            let new = Box::leak(Box::new(Self::init(secret_name.as_ref())?));
+            encrypters.insert(secret_name.as_ref().to_owned(), new);
+            Ok(new)
+        }
+    }
+
+    /// Init a encrypter. Load if exists, otherwise create and save a new one.
+    fn init(secret_name: &str) -> ConfigResult<Self> {
+        let entry = keyring_entry(secret_name)?;
+        match entry.get_password() {
+            Ok(serded_enc) => {
+                serde_json::from_str(&serded_enc).map_err(|_| ConfigError::LoadEncrypterFailed)
+            }
+            Err(keyring::Error::NoEntry) => {
+                let new_enc = Encrypter::default();
+                entry
+                    .set_password(&serde_json::to_string(&new_enc).unwrap())
+                    .map_err(|_| ConfigError::KeyringError)?;
+                Ok(new_enc)
+            }
+            Err(_) => Err(ConfigError::KeyringError),
+        }
     }
 
     pub(crate) fn encrypt<T: serde::Serialize>(&self, to_encrypt: &T) -> ConfigResult<Vec<u8>> {
@@ -91,6 +107,7 @@ fn keyring_entry(secret_name: impl AsRef<str>) -> ConfigResult<Entry> {
 }
 
 #[cfg(test)]
+#[cfg(feature = "mock")]
 mod tests {
     use super::*;
 
@@ -99,5 +116,7 @@ mod tests {
         let encrypter1 = Encrypter::new("test").unwrap();
         let encrypter2 = Encrypter::new("test").unwrap();
         assert_eq!(encrypter1, encrypter2);
+        let encrypter3 = Encrypter::new("another").unwrap();
+        assert_ne!(encrypter1, encrypter3);
     }
 }

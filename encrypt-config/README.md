@@ -103,7 +103,7 @@ _(You may see many `#[cfg(feature = "...")]` in the example below, if you are no
 You can implement the [`NormalSource`], [`PersistSource`] and [`SecretSource`] yourself.
 
 ```rust no_run
-# #[cfg(feature = "full")]
+# #[cfg(all(feature = "full", feature = "default_config_dir"))]
 # {
 use encrypt_config::{Config, NormalSource, PersistSource, SecretSource, TEST_OUT_DIR};
 use serde::{Deserialize, Serialize};
@@ -115,14 +115,14 @@ struct NormalConfig {
 }
 
 #[derive(Default, Serialize, Deserialize, PersistSource)]
-#[source(path = const_str::concat!(TEST_OUT_DIR, "/persist_config.json"))]
+#[source(name = "persist_config.json")]
 struct PersistConfig {
     name: String,
     age: usize,
 }
 
 #[derive(Default, Serialize, Deserialize, SecretSource)]
-#[source(path = const_str::concat!(TEST_OUT_DIR, "/secret_config.json"), keyring_entry = "secret")]
+#[source(name = "secret_config", keyring_entry = "secret")]
 struct SecretConfig {
     password: String,
 }
@@ -190,7 +190,7 @@ _For more examples, please refer to the [Example](https://github.com/kingwingfly
 <!-- CHANGELOG -->
 ## Changelog
 
-- v0.1.x -> v0.2.x: A broken change has been made. Heavily refactored with `std::any` and methods from `dependencies injection`. 
+- v0.1.x -> v0.2.x: A broken change has been made. Heavily refactored with `std::any` and methods from `dependencies injection`.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
