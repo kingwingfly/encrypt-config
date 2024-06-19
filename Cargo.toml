@@ -3,7 +3,7 @@ members = ["encrypt-config", "encrypt-config-derive", "tests", "examples"]
 resolver = "2"
 
 [workspace.package]
-version = "0.2.4"
+version = "0.2.5"
 authors = ["Louis <836250617@qq.com>"]
 description = "A Rust crate to manage, persist and encrypt your configurations."
 license = "MIT"

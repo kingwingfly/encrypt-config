@@ -10,6 +10,10 @@ Note: In this file, do not use the hard wrap in the middle of a sentence for com
 
 ## [Unreleased]
 
+## [0.2.5] - 2024-06-19
+
+- fix: (bug) rance condition when reusing the Encrypter
+
 ## [0.2.4] - 2024-06-19
 
 - fix: (bug) always use the same encrypter even if different keyring entries are given

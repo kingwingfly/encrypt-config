@@ -24,7 +24,7 @@ rand = { version = "0.8.5", optional = true }
 dirs = { version = "5.0.1", optional = true }
 
 [features]
-default = []
+default = ["full"]
 full = ["persist", "secret", "derive"]
 secret = [
     "dep:rsa",
