@@ -102,7 +102,7 @@ _(You may see many `#[cfg(feature = "...")]` in the example below, if you are no
 ```rust no_run
 # #[cfg(all(feature = "full", feature = "default_config_dir"))]
 # {
-use encrypt_config::{Config, NormalSource, PersistSource, SecretSource, TEST_OUT_DIR};
+use encrypt_config::{Config, NormalSource, PersistSource, SecretSource};
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 
