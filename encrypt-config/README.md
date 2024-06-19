@@ -13,7 +13,6 @@
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![MIT License][license-shield]][license-url]
-[![LinkedIn][linkedin-shield]][linkedin-url]
 
 
 
@@ -99,8 +98,6 @@ This crate also has some optional features:
 <!-- USAGE EXAMPLES -->
 ## Usage
 _(You may see many `#[cfg(feature = "...")]` in the example below, if you are not familar to Rust, you may not know this attribute is for `Conditinal Compile`, so that I can test it in `cargo test --all-features` automatically to ensure all go right.)_
-
-You can implement the [`NormalSource`], [`PersistSource`] and [`SecretSource`] yourself.
 
 ```rust no_run
 # #[cfg(all(feature = "full", feature = "default_config_dir"))]
@@ -192,6 +189,8 @@ _For more examples, please refer to the [Example](https://github.com/kingwingfly
 
 - v0.1.x -> v0.2.x: A broken change has been made. Heavily refactored with `std::any` and methods from `dependencies injection`.
 
+[more detailed changelog](https://github.com/kingwingfly/encrypt-config/blob/dev/CHANGELOG.md)
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
@@ -258,5 +257,4 @@ Project Link: [https://github.com/kingwingfly/encrypt-config](https://github.com
 [license-shield]: https://img.shields.io/github/license/kingwingfly/encrypt-config.svg?style=for-the-badge
 [license-url]: https://github.com/kingwingfly/encrypt-config/blob/master/LICENSE.txt
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-[linkedin-url]: https://linkedin.com/in/linkedin_username
 [product-screenshot]: images/screenshot.png
