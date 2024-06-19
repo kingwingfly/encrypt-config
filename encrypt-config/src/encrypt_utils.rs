@@ -83,15 +83,11 @@ impl Encrypter {
     }
 }
 
-fn keyring_entry(secret_name: impl AsRef<str>) -> ConfigResult<&'static Entry> {
+fn keyring_entry(secret_name: impl AsRef<str>) -> ConfigResult<Entry> {
     #[cfg(feature = "mock")]
     keyring::set_default_credential_builder(keyring::mock::default_credential_builder());
     let user = std::env::var("USER").unwrap_or("unknown".to_string());
-    static ENTRY: OnceLock<Result<Entry, keyring::Error>> = OnceLock::new();
-    ENTRY
-        .get_or_init(|| Entry::new(secret_name.as_ref(), &user))
-        .as_ref()
-        .map_err(|_| ConfigError::KeyringError)
+    Entry::new(secret_name.as_ref(), &user).map_err(|_| ConfigError::KeyringError)
 }
 
 #[cfg(test)]
