@@ -31,10 +31,13 @@ impl Encrypter {
     pub(crate) fn new(secret_name: impl AsRef<str>) -> ConfigResult<&'static Self> {
         static ENCRYPTERS: OnceLock<RwLock<HashMap<String, &'static Encrypter>>> = OnceLock::new();
         let encrypters = ENCRYPTERS.get_or_init(|| RwLock::new(HashMap::new()));
+        {
+            let encrypters = encrypters.read().unwrap();
+            if let Some(encrypter) = encrypters.get(secret_name.as_ref()) {
+                return Ok(encrypter);
+            }
+        }
         let mut encrypters = encrypters.write().unwrap();
-        // Why not `read` to check, then `write` to insert if not exists?
-        // Because many threads may try checking at the same time, and some of them may find
-        // the entry not exists then they will try to insert, which is not what we want.
         if let Some(encrypter) = encrypters.get(secret_name.as_ref()) {
             return Ok(encrypter);
         }
