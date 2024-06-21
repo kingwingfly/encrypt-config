@@ -41,7 +41,7 @@ keyring = { workspace = true, optional = true, features = ["platform-openbsd"] }
 keyring = { workspace = true, optional = true, features = ["platform-windows"] }
 
 [features]
-default = ["full"]
+default = []
 full = ["persist", "secret", "derive"]
 secret = [
     "dep:rsa",
