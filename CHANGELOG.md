@@ -10,6 +10,10 @@ Note: In this file, do not use the hard wrap in the middle of a sentence for com
 
 ## [Unreleased]
 
+## [0.2.6] - 2024-06-21
+
+- conditional compilation for `keyring`
+
 ## [0.2.6] - 2024-06-19
 
 - improve: (perf) speed up when reusing the Encrypter

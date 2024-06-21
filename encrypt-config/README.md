@@ -100,7 +100,7 @@ This crate also has some optional features:
 _(You may see many `#[cfg(feature = "...")]` in the example below, if you are not familar to Rust, you may not know this attribute is for `Conditinal Compile`, so that I can test it in `cargo test --all-features` automatically to ensure all go right.)_
 
 ```rust no_run
-# #[cfg(all(feature = "full", feature = "default_config_dir"))]
+# #[cfg(all(feature = "full", feature = "mock", feature = "default_config_dir"))]
 # {
 use encrypt_config::{Config, NormalSource, PersistSource, SecretSource};
 use serde::{Deserialize, Serialize};

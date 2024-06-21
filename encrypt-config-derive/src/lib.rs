@@ -16,7 +16,7 @@ use proc_macro::TokenStream;
 
 /// Derive macro for `NormalSource`.
 /// # Example
-/// ```
+/// ```no_run
 /// # use encrypt_config_derive::NormalSource;
 /// #[derive(Default, NormalSource)]
 /// struct NormalConfig {
@@ -30,7 +30,7 @@ pub fn derive_normal_source(input: TokenStream) -> TokenStream {
 
 /// Derive macro for `PersistSource`.
 /// # Example
-/// ```
+/// ```no_run
 /// # use encrypt_config_derive::PersistSource;
 /// # use serde::{Deserialize, Serialize};
 /// #[derive(Serialize, Deserialize, Default, PersistSource)]
@@ -55,7 +55,7 @@ pub fn derive_persist_source(input: TokenStream) -> TokenStream {
 
 /// Derive macro for `SecretSource`.
 /// # Example
-/// ```
+/// ```no_run
 /// # use encrypt_config_derive::SecretSource;
 /// # use serde::{Deserialize, Serialize};
 /// #[derive(Serialize, Deserialize, Default, SecretSource)]
