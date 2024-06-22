@@ -47,9 +47,6 @@ pub enum ConfigError {
         /// The error returned by `std::io`.
         source: std::io::Error,
     },
-    /// This error will be returned when the config cannot be collected from the source or the default value.
-    #[snafu(display("Cannot collect from Source"))]
-    CollectFailed,
 }
 
 /// The Result type of `encrypt config`, which is implemented by [`snafu`].

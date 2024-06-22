@@ -10,6 +10,11 @@ Note: In this file, do not use the hard wrap in the middle of a sentence for com
 
 ## [Unreleased]
 
+## [0.2.7] - 2024-06-21
+
+- doc: for linux doc
+- remove unused error enum
+
 ## [0.2.6] - 2024-06-21
 
 - conditional compilation for `keyring`
