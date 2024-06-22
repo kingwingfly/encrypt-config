@@ -10,6 +10,10 @@ Note: In this file, do not use the hard wrap in the middle of a sentence for com
 
 ## [Unreleased]
 
+## [0.2.9] - 2024-06-21
+
+- fix a doc mistake
+
 ## [0.2.8] - 2024-06-21
 
 - doc: for linux doc
