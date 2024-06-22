@@ -25,6 +25,9 @@ jobs:
       - name: install cargo components
         run: rustup component add clippy
 
+      - name: run tests
+        run: .github/scripts/test.sh
+
       - name: login to crates.io
         run: cargo login ${{ secrets.CRATESIO }}
 

@@ -5,7 +5,6 @@ export TERM=xterm-256color
 
 # Statements waiting to be executed
 statements=(
-    ".github/scripts/test.sh"
     "cargo publish -p $1 --dry-run"
 )
 
