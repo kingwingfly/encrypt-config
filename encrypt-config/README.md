@@ -82,7 +82,7 @@ This crate also has some optional features:
 - `default_config_dir`: If enabled, the default config dir will be used. Implemented through [dirs](https://crates.io/crates/dirs).
 - `protobuf`: If enabled, protobuf will be used instead of json for better performance. (WIP)
 
-#### Causion
+### Causion
 
 One of `linux-secret-service` and `linux-keyutils` features should be enabled on Linux, or a compile error will be raised. 
 
@@ -102,6 +102,7 @@ One of `linux-secret-service` and `linux-keyutils` features should be enabled on
 
 <!-- USAGE EXAMPLES -->
 ## Usage
+### Import
 ```toml
 [target.'cfg(target_os = "linux")'.dependencies]
 keyring = { version = "0.2", features ["full", "linux-secret-service"] }
@@ -109,7 +110,7 @@ keyring = { version = "0.2", features ["full", "linux-secret-service"] }
 [target.'cfg(not(target_os = "linux"))'.dependencies]
 keyring = { version = "0.2", features ["full"] }
 ```
-
+### Example
 ```rust no_run
 # #[cfg(all(feature = "full", feature = "mock", feature = "default_config_dir"))]
 # {
