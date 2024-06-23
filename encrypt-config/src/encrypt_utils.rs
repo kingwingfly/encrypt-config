@@ -9,6 +9,7 @@ use std::{
     sync::{OnceLock, RwLock},
 };
 
+/// Encrypter struct.
 #[derive(serde::Serialize, serde::Deserialize)]
 #[cfg_attr(test, derive(PartialEq, Debug))]
 pub struct Encrypter {
@@ -28,7 +29,8 @@ impl Default for Encrypter {
 }
 
 impl Encrypter {
-    pub(crate) fn new(secret_name: impl AsRef<str>) -> ConfigResult<&'static Self> {
+    /// Create a new encrypter. Load if exists, otherwise create and save a new one.
+    pub fn new(secret_name: impl AsRef<str>) -> ConfigResult<&'static Self> {
         static ENCRYPTERS: OnceLock<RwLock<HashMap<String, &'static Encrypter>>> = OnceLock::new();
         let encrypters = ENCRYPTERS.get_or_init(|| RwLock::new(HashMap::new()));
         {
@@ -64,7 +66,8 @@ impl Encrypter {
         }
     }
 
-    pub(crate) fn encrypt<T: serde::Serialize>(&self, to_encrypt: &T) -> ConfigResult<Vec<u8>> {
+    /// Serialize and encrypt a value.
+    pub fn encrypt<T: serde::Serialize>(&self, to_encrypt: &T) -> ConfigResult<Vec<u8>> {
         let origin = serde_json::to_vec(to_encrypt)?;
         self.encrypt_serded(&origin)
     }
@@ -83,7 +86,8 @@ impl Encrypter {
         Ok(encrypted)
     }
 
-    pub(crate) fn decrypt<T>(&self, encrypted: &[u8]) -> ConfigResult<T>
+    /// Decrypt and deserialize a value.
+    pub fn decrypt<T>(&self, encrypted: &[u8]) -> ConfigResult<T>
     where
         for<'de> T: serde::Deserialize<'de>,
     {

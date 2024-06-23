@@ -224,7 +224,7 @@ macro_rules! impl_savaload {
 
             #[allow(non_snake_case)]
             fn load_to(cache: &mut Cache) {
-                $(let $t = $t::load();)+
+                $(let $t = $t::load_or_default();)+
                 $(cache.insert(
                     TypeId::of::<$t>(),
                     CacheValue {
@@ -246,7 +246,7 @@ where
     }
 
     fn load_to(cache: &mut Cache) {
-        let t = T::load();
+        let t = T::load_or_default();
         cache.insert(
             TypeId::of::<T>(),
             CacheValue {

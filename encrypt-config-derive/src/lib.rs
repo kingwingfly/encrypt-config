@@ -31,7 +31,7 @@ pub fn derive_normal_source(input: TokenStream) -> TokenStream {
 /// Derive macro for `PersistSource`.
 /// # Example
 /// ```no_run
-/// # use encrypt_config_derive::PersistSource;
+/// # use encrypt_config::PersistSource;
 /// # use serde::{Deserialize, Serialize};
 /// #[derive(Serialize, Deserialize, Default, PersistSource)]
 #[cfg_attr(
@@ -56,7 +56,7 @@ pub fn derive_persist_source(input: TokenStream) -> TokenStream {
 /// Derive macro for `SecretSource`.
 /// # Example
 /// ```no_run
-/// # use encrypt_config_derive::SecretSource;
+/// # use encrypt_config::SecretSource;
 /// # use serde::{Deserialize, Serialize};
 /// #[derive(Serialize, Deserialize, Default, SecretSource)]
 #[cfg_attr(

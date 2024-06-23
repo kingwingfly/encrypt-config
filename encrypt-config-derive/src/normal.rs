@@ -11,11 +11,11 @@ pub(crate) fn derive_normal_source(input: TokenStream) -> TokenStream {
         impl #impl_generics ::encrypt_config::NormalSource for #name #ty_generics #where_clause { }
 
         impl #impl_generics ::encrypt_config::Source for #name #ty_generics #where_clause {
-            fn load() -> Self
+            fn load() -> ::encrypt_config::error::ConfigResult<Self>
             where
                 Self: Sized,
             {
-                Self::default()
+                Ok(Self::default())
             }
 
             fn save(&self) -> ::encrypt_config::error::ConfigResult<()> {

@@ -37,12 +37,9 @@ pub const TEST_OUT_DIR: &str = concat!(env!("OUT_DIR"), "/encrypt_config_cache")
 
 pub mod config;
 #[cfg(feature = "secret")]
-mod encrypt_utils;
+pub mod encrypt_utils;
 pub mod error;
 pub mod source;
 
 pub use config::Config;
 pub use source::*;
-
-#[cfg(feature = "derive")]
-pub use encrypt_config_derive::*;

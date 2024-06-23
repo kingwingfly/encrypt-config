@@ -53,19 +53,17 @@ pub(crate) fn derive_secret_source(input: TokenStream) -> TokenStream {
         impl #impl_generics ::encrypt_config::SecretSource for #name #ty_generics #where_clause {
             #[cfg(not(feature = "default_config_dir"))]
             const PATH: &'static str = #path_or_name;
-
             #[cfg(feature = "default_config_dir")]
             const NAME: &'static str = #path_or_name;
-
             const KEYRING_ENTRY: &'static str = #keyring_entry;
         }
 
         impl #impl_generics ::encrypt_config::Source for #name #ty_generics #where_clause {
-            fn load() -> Self
+            fn load() -> ::encrypt_config::error::ConfigResult<Self>
             where
                 Self: Sized,
             {
-                <Self as ::encrypt_config::SecretSource>::load().unwrap_or_default()
+                <Self as ::encrypt_config::SecretSource>::load()
             }
 
             fn save(&self) -> ::encrypt_config::error::ConfigResult<()> {
