@@ -32,7 +32,7 @@ impl Default for Config {
     }
 }
 
-/// This holds a `RwLockReadGuard` of the config value util the end of the scope.
+/// This holds a `RwLockReadGuard` of the config value until the end of the scope.
 /// It is used to get an immutable reference to the config value.
 /// One should drop it as soon as possible to avoid deadlocks.
 /// # Deadlocks
@@ -42,7 +42,7 @@ pub struct ConfigRef<'a, T: 'static> {
     _marker: PhantomData<&'a T>,
 }
 
-/// This holds a `RwLockWriteGuard` of the config value util the end of the scope.
+/// This holds a `RwLockWriteGuard` of the config value until the end of the scope.
 /// It is used to get a mutable reference to the config value.
 /// One should drop it as soon as possible to avoid deadlocks.
 /// # Deadlocks
