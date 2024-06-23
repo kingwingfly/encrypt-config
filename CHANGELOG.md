@@ -10,6 +10,10 @@ Note: In this file, do not use the hard wrap in the middle of a sentence for com
 
 ## [Unreleased]
 
+## [0.3.2] - 2024-06-23
+
+- improve code quality
+
 ## [0.3.1] - 2024-06-23
 
 - fix doc and spell mistakes
