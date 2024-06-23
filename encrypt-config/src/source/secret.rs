@@ -40,9 +40,9 @@ pub trait SecretSource: Serialize + for<'de> Deserialize<'de> + Default {
         let path = Self::path();
         let parent = path.parent().unwrap();
         std::fs::create_dir_all(parent).unwrap();
-        let mut file = std::fs::File::create(path).unwrap();
         let encrypter = Encrypter::new(Self::KEYRING_ENTRY)?;
         let encrypted = encrypter.encrypt(self)?;
+        let mut file = std::fs::File::create(path).unwrap();
         file.write_all(&encrypted)?;
         file.flush()?;
         Ok(())

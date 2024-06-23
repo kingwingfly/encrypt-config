@@ -140,9 +140,7 @@ fn config() -> &'static Config {
     static CONFIG: OnceLock<Config> = OnceLock::new();
     CONFIG.get_or_init(|| {
         let mut config = Config::default();
-        config.add_normal_source::<NormalConfig>().unwrap();
-        config.add_persist_source::<PersistConfig>().unwrap();
-        config.add_secret_source::<SecretConfig>().unwrap();
+        config.load_source::<(NormalConfig, PersistConfig, SecretConfig)>();
         config
     })
 }
@@ -174,9 +172,7 @@ jh.join().unwrap();
 
 // let's new a config in the next start
 let mut config = Config::default();
-config.add_normal_source::<NormalConfig>().unwrap();
-config.add_persist_source::<PersistConfig>().unwrap();
-config.add_secret_source::<SecretConfig>().unwrap();
+config.load_source::<(NormalConfig, PersistConfig, SecretConfig)>();
 
 // normal config will not be saved
 assert_eq!(config.get::<NormalConfig>().unwrap().count, 0);
@@ -188,6 +184,9 @@ assert_eq!(config.get::<SecretConfig>().unwrap().password, "123456");
 // The secret config file should not be able to load directly
 let encrypted_file = std::fs::File::open(SecretConfig::path()).unwrap();
 assert!(serde_json::from_reader::<_, SecretConfig>(encrypted_file).is_err());
+
+// You can also save in this way
+config.save::<(PersistConfig, SecretConfig)>().unwrap();
 # }
 ```
 
@@ -199,6 +198,7 @@ _For more examples, please refer to the [Example](https://github.com/kingwingfly
 <!-- CHANGELOG -->
 ## Changelog
 
+- v0.2.x -> v0.3.x: Now, multi-config-sources can be saved and loaded through `Config` in one go. But `add_xx_source`s are removed. By the way, one can defined their own sources by implementing `Source` trait while `NormalSource` `PersistSource` `SecretSource` are still provided. 
 - v0.1.x -> v0.2.x: A broken change has been made. Heavily refactored with `std::any` and methods from `dependencies injection`.
 
 [more detailed changelog](https://github.com/kingwingfly/encrypt-config/blob/dev/CHANGELOG.md)

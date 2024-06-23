@@ -1,16 +1,10 @@
 //! # Config
 //! This module provides a [`Config`] struct that can be used to store configuration values.
 
-#[cfg(feature = "persist")]
-use crate::PersistSource;
-#[cfg(feature = "secret")]
-use crate::SecretSource;
 use crate::{
     error::{ConfigNotFound, ConfigResult},
-    NormalSource,
+    Source,
 };
-#[cfg(feature = "persist")]
-use serde::Deserialize;
 use snafu::OptionExt as _;
 use std::{
     any::{type_name, Any, TypeId},
@@ -137,6 +131,40 @@ impl Config {
         }
     }
 
+    /// Load sources to the `Config`.
+    /// `T: Source` or tuple of `T: Source` like `(T1, T2, T3)`.
+    /// Please make sure each kind of source is loaded only once,
+    /// or the later one will overwrite the previous one.
+    /// If load fails (not existing or failed to decrypt),
+    /// it will use the default value.
+    #[allow(private_bounds)]
+    pub fn load_source<T>(&mut self)
+    where
+        T: SaveLoad,
+    {
+        T::load_to(&mut self.cache);
+    }
+
+    /// Save sources in the `Config`.
+    /// `T: Source` or tuple of `T: Source` like `(T1, T2, T3)`.
+    /// # Deadlocks
+    /// This method will try to get [`ConfigRef`] from the cache, so if [`ConfigMut`]
+    /// exists, it will block until it is dropped.
+    /// # Errors
+    /// - If one of the sources is not found in the cache, it will return an error,
+    /// and none of the sources will be saved.
+    /// - If one of the sources fails to save (io error), it will return an error,
+    /// sources that have been saved will not be rolled back, the rest will not be saved,
+    /// and the file which stores the failed source may lose its content (just making sure
+    /// you always have the right permission to operate the target file is okay).
+    #[allow(private_bounds)]
+    pub fn save<T>(&self) -> ConfigResult<()>
+    where
+        T: SaveLoad,
+    {
+        T::save(&self.cache)
+    }
+
     /// Get an immutable ref from the config.
     /// See [`ConfigRef`] for more details.
     pub fn get<T>(&self) -> ConfigResult<ConfigRef<T>>
@@ -173,61 +201,66 @@ impl Config {
             .expect("EncryptConfig: Rwlock is poisoned");
         Ok(*value.downcast().unwrap())
     }
+}
 
-    /// Add a normal source to the config.
-    /// The source must implement [`NormalSource`] trait, which is for normal config that does not need to be encrypted or persisted.
-    ///
-    /// The `Default` trait is required as the default value of the config.
-    pub fn add_normal_source<T>(&mut self) -> ConfigResult<()>
-    where
-        T: Any + NormalSource + Default + Send + Sync + 'static,
-    {
-        self.cache.insert(
-            TypeId::of::<T>(),
-            CacheValue {
-                inner: RwLock::new(Box::new(T::default())),
-            },
-        );
-        Ok(())
+/// This trait is used to save and load the configuration values.
+trait SaveLoad {
+    fn save(cache: &Cache) -> ConfigResult<()>;
+    fn load_to(cache: &mut Cache);
+}
+
+macro_rules! impl_savaload {
+    ($($t: ident),+) => {
+        impl<$($t, )+> SaveLoad for ($($t, )+)
+        where
+            $($t: Any + Source + Send + Sync + 'static,)+
+        {
+            #[allow(non_snake_case)]
+            fn save(cache: &Cache) -> ConfigResult<()> {
+                $(let $t = ConfigRef::<$t>::retrieve(cache)?;)+
+                $($t.save()?;)+
+                Ok(())
+            }
+
+            #[allow(non_snake_case)]
+            fn load_to(cache: &mut Cache) {
+                $(let $t = $t::load();)+
+                $(cache.insert(
+                    TypeId::of::<$t>(),
+                    CacheValue {
+                        inner: RwLock::new(Box::new($t)),
+                    },
+                );)+
+            }
+        }
+    };
+}
+
+impl<T> SaveLoad for T
+where
+    T: Any + Source + Send + Sync + 'static,
+{
+    fn save(cache: &Cache) -> ConfigResult<()> {
+        let t = ConfigRef::<T>::retrieve(cache)?;
+        t.save()
     }
 
-    /// Add a persist source to the config.
-    /// The source must implement [`PersistSource`] trait, which is for config that needs to be persisted.
-    ///
-    /// The `Default` trait is required as the default value of the config.
-    #[cfg(feature = "persist")]
-    pub fn add_persist_source<T>(&mut self) -> ConfigResult<()>
-    where
-        T: Any + PersistSource + Default + Send + Sync + 'static,
-        for<'de> T: Deserialize<'de>,
-    {
-        let value: T = T::load().unwrap_or_default();
-        self.cache.insert(
+    fn load_to(cache: &mut Cache) {
+        let t = T::load();
+        cache.insert(
             TypeId::of::<T>(),
             CacheValue {
-                inner: RwLock::new(Box::new(value)),
+                inner: RwLock::new(Box::new(t)),
             },
         );
-        Ok(())
-    }
-
-    /// Add a secret source to the config.
-    /// The source must implement [`SecretSource`] trait, which is for config that needs to be encrypted and persisted.
-    ///
-    /// The `Default` trait is required as the default value of the config.
-    #[cfg(feature = "secret")]
-    pub fn add_secret_source<T>(&mut self) -> ConfigResult<()>
-    where
-        T: Any + SecretSource + Default + Send + Sync + 'static,
-        for<'de> T: Deserialize<'de>,
-    {
-        let value: T = T::load().unwrap_or_default();
-        self.cache.insert(
-            TypeId::of::<T>(),
-            CacheValue {
-                inner: RwLock::new(Box::new(value)),
-            },
-        );
-        Ok(())
     }
 }
+
+impl_savaload!(T1);
+impl_savaload!(T1, T2);
+impl_savaload!(T1, T2, T3);
+impl_savaload!(T1, T2, T3, T4);
+impl_savaload!(T1, T2, T3, T4, T5);
+impl_savaload!(T1, T2, T3, T4, T5, T6);
+impl_savaload!(T1, T2, T3, T4, T5, T6, T7);
+impl_savaload!(T1, T2, T3, T4, T5, T6, T7, T8);

@@ -1,4 +1,4 @@
-use encrypt_config::{Config, NormalSource, PersistSource, SecretSource, TEST_OUT_DIR};
+use encrypt_config::{Config, NormalSource, PersistSource, SecretSource};
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 
@@ -8,14 +8,25 @@ struct NormalConfig {
 }
 
 #[derive(Default, Serialize, Deserialize, PersistSource)]
-#[source(path = const_str::concat!(TEST_OUT_DIR, "/persist_config.json"))]
+#[cfg_attr(feature = "default_config_dir", source(name = "persist_config.json"))]
+#[cfg_attr(
+    not(feature = "default_config_dir"),
+    source(path = const_str::concat!(encrypt_config::TEST_OUT_DIR, "/persist_config.json"))
+)]
 struct PersistConfig {
     name: String,
     age: usize,
 }
 
 #[derive(Default, Serialize, Deserialize, SecretSource)]
-#[source(path = const_str::concat!(TEST_OUT_DIR, "/secret_config.json"), keyring_entry = "secret")]
+#[cfg_attr(
+    feature = "default_config_dir",
+    source(name = "secret_config", keyring_entry = "secret")
+)]
+#[cfg_attr(
+    not(feature = "default_config_dir"),
+    source(path = const_str::concat!(encrypt_config::TEST_OUT_DIR, "/secret_config"), keyring_entry = "secret")
+)]
 struct SecretConfig {
     password: String,
 }
@@ -24,9 +35,7 @@ fn config() -> &'static Config {
     static CONFIG: OnceLock<Config> = OnceLock::new();
     CONFIG.get_or_init(|| {
         let mut config = Config::default();
-        config.add_normal_source::<NormalConfig>().unwrap();
-        config.add_persist_source::<PersistConfig>().unwrap();
-        config.add_secret_source::<SecretConfig>().unwrap();
+        config.load_source::<(NormalConfig, PersistConfig, SecretConfig)>();
         config
     })
 }
@@ -65,9 +74,7 @@ fn main() {
 
     // let's new a config in the next start
     let mut config = Config::default();
-    config.add_normal_source::<NormalConfig>().unwrap();
-    config.add_persist_source::<PersistConfig>().unwrap();
-    config.add_secret_source::<SecretConfig>().unwrap();
+    config.load_source::<(NormalConfig, PersistConfig, SecretConfig)>();
 
     // normal config will not be saved
     assert_eq!(config.get::<NormalConfig>().unwrap().count, 0);
@@ -79,6 +86,9 @@ fn main() {
     // The secret config file should not be able to load directly
     let encrypted_file = std::fs::File::open(SecretConfig::path()).unwrap();
     assert!(serde_json::from_reader::<_, SecretConfig>(encrypted_file).is_err());
+
+    // You can also save in this way
+    config.save::<(PersistConfig, SecretConfig)>().unwrap();
 
     // clean after test
     for file in files {

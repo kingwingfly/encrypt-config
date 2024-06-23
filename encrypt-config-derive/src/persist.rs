@@ -48,6 +48,19 @@ pub(crate) fn derive_persist_source(input: TokenStream) -> TokenStream {
             #[cfg(feature = "default_config_dir")]
             const NAME: &'static str = #path_or_name;
         }
+
+        impl #impl_generics ::encrypt_config::Source for #name #ty_generics #where_clause {
+            fn load() -> Self
+            where
+                Self: Sized,
+            {
+                <Self as ::encrypt_config::PersistSource>::load().unwrap_or_default()
+            }
+
+            fn save(&self) -> ::encrypt_config::error::ConfigResult<()> {
+                <Self as ::encrypt_config::PersistSource>::save(self)
+            }
+        }
     };
 
     TokenStream::from(expanded)

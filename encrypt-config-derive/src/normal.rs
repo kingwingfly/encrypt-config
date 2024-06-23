@@ -9,6 +9,19 @@ pub(crate) fn derive_normal_source(input: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         impl #impl_generics ::encrypt_config::NormalSource for #name #ty_generics #where_clause { }
+
+        impl #impl_generics ::encrypt_config::Source for #name #ty_generics #where_clause {
+            fn load() -> Self
+            where
+                Self: Sized,
+            {
+                Self::default()
+            }
+
+            fn save(&self) -> ::encrypt_config::error::ConfigResult<()> {
+                Ok(())
+            }
+        }
     };
 
     TokenStream::from(expanded)

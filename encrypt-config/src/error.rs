@@ -1,3 +1,5 @@
+//! The error types of `encrypt config`.
+
 use snafu::Snafu;
 
 /// The Error types of `encrypt config`, which is implemented by [`snafu`].

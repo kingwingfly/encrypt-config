@@ -14,6 +14,8 @@ statements=(
     "cargo test --no-default-features --features persist,default_config_dir"
     "cargo test --no-default-features --features secret,mock"
     "cargo test --no-default-features --features secret,mock,default_config_dir"
+    "cargo test --no-default-features --features full,mock"
+    "cargo test --no-default-features --features full,mock,default_config_dir"
 
     "cargo run --example example --no-default-features --features full,mock"
 
