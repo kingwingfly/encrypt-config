@@ -87,9 +87,16 @@ fn main() {
     let encrypted_file = std::fs::File::open(SecretConfig::path()).unwrap();
     assert!(serde_json::from_reader::<_, SecretConfig>(encrypted_file).is_err());
 
+    {
+        let mut secret_config = config.get_mut::<SecretConfig>().unwrap();
+        secret_config.password = "654321".to_string();
+    }
     // You can also save in this way
     config.save::<(PersistConfig, SecretConfig)>().unwrap();
-
+    // Restart again
+    let mut config = Config::default();
+    config.load_source::<(NormalConfig, PersistConfig, SecretConfig)>();
+    assert_eq!(config.get::<SecretConfig>().unwrap().password, "654321");
     // clean after test
     for file in files {
         std::fs::remove_file(file).ok();
