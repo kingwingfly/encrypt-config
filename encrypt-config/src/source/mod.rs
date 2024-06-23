@@ -16,7 +16,7 @@ use crate::error::ConfigResult;
 
 /// Source trait for the encrypt-config crate. You can impl your logic for loading and saving the configuration here.
 /// Moreover, you can use derive macros to implement [`NormalSource`], [`PersistSource`], and [`SecretSource`] in this crate.
-/// In this way, `Source` will be implemented for derived structs, so that they can be accepted by the [`Config`](crate::Config) struct.
+/// In provided ways, `Source` will be implemented when deriving, so that derived structs can be accepted by the [`Config`](crate::Config) struct.
 pub trait Source: Default {
     /// Load logic for the source, return default value is recommended.
     fn load() -> Self
