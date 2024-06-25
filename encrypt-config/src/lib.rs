@@ -15,7 +15,7 @@ compile_error!("Feature `mock` is designed only for feature `secret` on.");
         feature = "mock"
     ))
 ))]
-compile_error!("On Linux, there are two supported platform credential stores: the secret-service and the kernel keyutils. You must enable one of the following features: `linux-secret-service` `linux-keyutils` `mock`.");
+compile_error!("On Linux, there are two supported platform credential stores: the secret-service and the keyutils. You must enable one of the following features: `linux-secret-service` `linux-keyutils` `mock`.");
 #[cfg(all(
     target_os = "linux",
     feature = "secret",
@@ -26,9 +26,15 @@ compile_error!("On Linux, there are two supported platform credential stores: th
     )
 ))]
 compile_error!("On Linux, Only one of the following features can be enabled: `linux-secret-service` `linux-keyutils` `mock`.");
-#[cfg(any(
-    all(not(target_os = "linux"), feature = "linux-secret-service"),
-    all(not(target_os = "linux"), feature = "linux-keyutils")
+#[cfg(all(
+    target_os = "linux",
+    not(feature = "secret"),
+    any(feature = "linux-secret-service", feature = "linux-keyutils")
+))]
+compile_error!("On Linux, `linux-secret-service` `linux-keyutils` are only for `secret` on");
+#[cfg(all(
+    not(target_os = "linux")
+    any(feature = "linux-secret-service", feature = "linux-keyutils"),
 ))]
 compile_error!("`linux-secret-service` `linux-keyutils` are only for Linux.");
 
