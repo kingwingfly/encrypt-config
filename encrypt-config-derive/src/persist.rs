@@ -40,13 +40,22 @@ pub(crate) fn derive_persist_source(input: TokenStream) -> TokenStream {
         panic!("`#[source(path = \"...\")]` is required.");
     }
 
-    let expanded = quote! {
+    #[cfg(not(feature = "default_config_dir"))]
+    let persist_source_impl = quote! {
         impl #impl_generics ::encrypt_config::PersistSource for #name #ty_generics #where_clause {
-            #[cfg(not(feature = "default_config_dir"))]
             const PATH: &'static str = #path_or_name;
-            #[cfg(feature = "default_config_dir")]
+        }
+    };
+
+    #[cfg(feature = "default_config_dir")]
+    let persist_source_impl = quote! {
+        impl #impl_generics ::encrypt_config::PersistSource for #name #ty_generics #where_clause {
             const NAME: &'static str = #path_or_name;
         }
+    };
+
+    let expanded = quote! {
+        #persist_source_impl
 
         impl #impl_generics ::encrypt_config::Source for #name #ty_generics #where_clause {
             fn load() -> ::encrypt_config::error::ConfigResult<Self>

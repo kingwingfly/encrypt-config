@@ -49,14 +49,25 @@ pub(crate) fn derive_secret_source(input: TokenStream) -> TokenStream {
         panic!("`#[source(keyring_entry = \"...\")]` is required.");
     }
 
-    let expanded = quote! {
+    #[cfg(not(feature = "default_config_dir"))]
+    let secret_source_impl = quote! {
         impl #impl_generics ::encrypt_config::SecretSource for #name #ty_generics #where_clause {
-            #[cfg(not(feature = "default_config_dir"))]
             const PATH: &'static str = #path_or_name;
-            #[cfg(feature = "default_config_dir")]
-            const NAME: &'static str = #path_or_name;
             const KEYRING_ENTRY: &'static str = #keyring_entry;
         }
+    };
+
+    #[cfg(feature = "default_config_dir")]
+    let secret_source_impl = quote! {
+        impl #impl_generics ::encrypt_config::SecretSource for #name #ty_generics #where_clause {
+            const NAME: &'static str = #path_or_name;
+            const KEYRING_ENTRY: &'static str = #keyring_entry;
+
+        }
+    };
+
+    let expanded = quote! {
+        #secret_source_impl
 
         impl #impl_generics ::encrypt_config::Source for #name #ty_generics #where_clause {
             fn load() -> ::encrypt_config::error::ConfigResult<Self>
