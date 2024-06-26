@@ -33,7 +33,7 @@ compile_error!("On Linux, Only one of the following features can be enabled: `li
 ))]
 compile_error!("On Linux, `linux-secret-service` `linux-keyutils` are only for `secret` on");
 #[cfg(all(
-    not(target_os = "linux")
+    not(target_os = "linux"),
     any(feature = "linux-secret-service", feature = "linux-keyutils"),
 ))]
 compile_error!("`linux-secret-service` `linux-keyutils` are only for Linux.");
