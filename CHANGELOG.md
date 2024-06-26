@@ -10,6 +10,10 @@ Note: In this file, do not use the hard wrap in the middle of a sentence for com
 
 ## [Unreleased]
 
+## [0.3.3] - 2024-06-23
+
+- fix doc error
+
 ## [0.3.2] - 2024-06-23
 
 - improve code quality
@@ -20,7 +24,7 @@ Note: In this file, do not use the hard wrap in the middle of a sentence for com
 
 ## [0.3.0] - 2024-06-23
 
-- refactor: Now, multi-config-sources can be saved and loaded through `Config` in one go. But `add_xx_source`s are removed. By the way, one can defined their own sources by implementing `Source` trait while `NormalSource` `PersistSource` `SecretSource` are still provided. 
+- refactor: Now, multi-config-sources can be saved and loaded through `Config` in one go. But `add_xx_source`s are removed. By the way, one can defined their own sources by implementing `Source` trait while `NormalSource` `PersistSource` `SecretSource` are still provided.
 
 ## [0.2.9] - 2024-06-21
 
