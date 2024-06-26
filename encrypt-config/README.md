@@ -105,10 +105,10 @@ One of `linux-secret-service` and `linux-keyutils` features should be enabled on
 ### Import
 ```toml
 [target.'cfg(target_os = "linux")'.dependencies]
-encrypt_config = { version = "0.2", features ["full", "linux-secret-service"] }
+encrypt_config = { version = "0.2", features = ["full", "linux-secret-service"] }
 
 [target.'cfg(not(target_os = "linux"))'.dependencies]
-encrypt_config = { version = "0.2", features ["full"] }
+encrypt_config = { version = "0.2", features = ["full"] }
 ```
 ### Example
 ```rust no_run
@@ -198,7 +198,7 @@ _For more examples, please refer to the [Example](https://github.com/kingwingfly
 <!-- CHANGELOG -->
 ## Changelog
 
-- v0.2.x -> v0.3.x: Now, multi-config-sources can be saved and loaded through `Config` in one go. But `add_xx_source`s are removed. By the way, one can defined their own sources by implementing `Source` trait while `NormalSource` `PersistSource` `SecretSource` are still provided. 
+- v0.2.x -> v0.3.x: Now, multi-config-sources can be saved and loaded through `Config` in one go. But `add_xx_source`s are removed. By the way, one can defined their own sources by implementing `Source` trait while `NormalSource` `PersistSource` `SecretSource` are still provided.
 - v0.1.x -> v0.2.x: A broken change has been made. Heavily refactored with `std::any` and methods from `dependencies injection`.
 
 [more detailed changelog](https://github.com/kingwingfly/encrypt-config/blob/dev/CHANGELOG.md)
