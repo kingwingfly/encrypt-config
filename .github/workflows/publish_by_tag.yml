@@ -1,0 +1,34 @@
+name: Publish by Tag
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - v[0-9]+.*
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: install cargo components
+        run: rustup component add clippy
+      - name: test
+        run: .github/scripts/test.sh
+      - name: login to crates.io
+        run: cargo login ${{ secrets.CRATESIO }}
+      - name: publish encrypt_config_derive
+        run: .github/scripts/publish_test.sh encrypt_config_derive && .github/scripts/publish.sh encrypt_config_derive
+      - name: publish encrypt_config
+        run: .github/scripts/publish_test.sh encrypt_config && .github/scripts/publish.sh encrypt_config
+      - uses: taiki-e/create-gh-release-action@v1
+        with:
+          # (optional) Path to changelog.
+          changelog: CHANGELOG.md
+          # (required) GitHub token for creating GitHub Releases.
+          token: ${{ secrets.GITHUB_TOKEN }}

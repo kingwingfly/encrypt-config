@@ -10,6 +10,10 @@ Note: In this file, do not use the hard wrap in the middle of a sentence for com
 
 ## [Unreleased]
 
+## [0.3.5] - 2024-06-27
+
+- doc: optimization suggestion
+
 ## [0.3.4] - 2024-06-26
 
 - fix a bug when `default_config_dir` feature is enabled when macro expanded

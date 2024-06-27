@@ -109,6 +109,9 @@ encrypt_config = { version = "0.3", features = ["full", "linux-secret-service"] 
 
 [target.'cfg(not(target_os = "linux"))'.dependencies]
 encrypt_config = { version = "0.3", features = ["full"] }
+
+[profile.dev.package.num-bigint-dig]
+opt-level = 3
 ```
 ### Example
 ```rust no_run
