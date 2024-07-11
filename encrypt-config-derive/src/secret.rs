@@ -62,7 +62,6 @@ pub(crate) fn derive_secret_source(input: TokenStream) -> TokenStream {
         impl #impl_generics ::encrypt_config::SecretSource for #name #ty_generics #where_clause {
             const NAME: &'static str = #path_or_name;
             const KEYRING_ENTRY: &'static str = #keyring_entry;
-
         }
     };
 
