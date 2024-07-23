@@ -185,6 +185,8 @@ let encrypted_file = std::fs::File::open(SecretConfig::path()).unwrap();
 assert!(serde_json::from_reader::<_, SecretConfig>(encrypted_file).is_err());
 
 // You can also save manually
+let persist_config = config.get::<PersistConfig>();
+persist_config.save().unwrap();
 config.save(SecretConfig { password: "123".to_owned() }).unwrap();
 assert_eq!(config.get::<SecretConfig>().password, "123");
 # }

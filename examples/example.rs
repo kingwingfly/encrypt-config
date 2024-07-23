@@ -88,6 +88,9 @@ fn main() {
     }
     assert_eq!(config.get::<SecretConfig>().password, "654321");
 
+    // You can save manually
+    let persist_config = config.get::<PersistConfig>();
+    persist_config.save().unwrap();
     // You can also save in this way
     config
         .save(SecretConfig {
