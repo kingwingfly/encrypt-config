@@ -156,6 +156,7 @@ where
                     "Error from encrypt_config: {e}\nThis msg is printed while saving as dropping."
                 );
             }
+            self.dirty = false;
         }
     }
 }
