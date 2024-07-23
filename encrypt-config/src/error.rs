@@ -6,12 +6,6 @@ use snafu::Snafu;
 #[derive(Snafu, Debug)]
 #[snafu(visibility(pub(crate)), context(suffix(false)))]
 pub enum ConfigError {
-    /// This error will be returned when the key is not found in the config.
-    #[snafu(display("The type `{}` not found in Config", r#type))]
-    ConfigNotFound {
-        /// The type which is not found in the config.
-        r#type: String,
-    },
     /// This error will be returned when the value cannot seriliazed or deserialized.
     #[snafu(
         display("Serde Error. Cannot seriliaze or deseriliaze."),

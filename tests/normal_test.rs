@@ -8,18 +8,17 @@ struct NormalConfig {
 #[test]
 fn normal_test() {
     let mut config = Config::default();
-    config.load_source::<NormalConfig>();
     {
-        let normal_config = config.get::<NormalConfig>().unwrap();
+        let normal_config = config.get::<NormalConfig>();
         assert_eq!(normal_config.value, 0);
     }
     {
-        let mut normal_config = config.get_mut::<NormalConfig>().unwrap();
+        let mut normal_config = config.get_mut::<NormalConfig>();
         normal_config.value = 42;
         assert_eq!(normal_config.value, 42);
     }
     {
-        let normal_config = config.take::<NormalConfig>().unwrap();
+        let normal_config = config.take::<NormalConfig>();
         assert_eq!(normal_config.value, 42);
     }
 }

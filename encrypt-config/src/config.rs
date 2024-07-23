@@ -1,13 +1,9 @@
 //! # Config
 //! This module provides a [`Config`] struct that can be used to store configuration values.
 
-use crate::{
-    error::{ConfigNotFound, ConfigResult},
-    Source,
-};
-use snafu::OptionExt as _;
+use crate::Source;
 use std::{
-    any::{type_name, Any, TypeId},
+    any::{Any, TypeId},
     collections::HashMap,
     marker::PhantomData,
     ops::{Deref, DerefMut},
@@ -18,7 +14,30 @@ struct CacheValue {
     inner: RwLock<Box<dyn Any + Send + Sync>>,
 }
 
-type Cache = HashMap<TypeId, CacheValue>;
+#[derive(Default)]
+struct Cache {
+    inner: HashMap<TypeId, CacheValue>,
+}
+
+impl Cache {
+    fn get_or_default<T: Source + Any + Send + Sync>(&mut self) -> &mut CacheValue {
+        self.inner.entry(TypeId::of::<T>()).or_insert(CacheValue {
+            inner: RwLock::new(Box::new(T::load_or_default())),
+        })
+    }
+
+    fn take_or_default<T: Source + Any + Send + Sync>(&mut self) -> T {
+        match self.inner.remove(&TypeId::of::<T>()) {
+            Some(value) => *value
+                .inner
+                .into_inner()
+                .expect("EncryptConfig: Rwlock is poisoned")
+                .downcast()
+                .unwrap(),
+            None => T::load_or_default(),
+        }
+    }
+}
 
 /// A struct that can be used to store configuration values.
 pub struct Config {
@@ -28,7 +47,9 @@ pub struct Config {
 impl Default for Config {
     /// Create an empty [`Config`] struct.
     fn default() -> Self {
-        Self::new()
+        Self {
+            cache: Cache::default(),
+        }
     }
 }
 
@@ -37,7 +58,10 @@ impl Default for Config {
 /// One should drop it as soon as possible to avoid deadlocks.
 /// # Deadlocks
 /// - If you already held a [`ConfigMut`], [`Config::get()`] will block until you drop it.
-pub struct ConfigRef<'a, T: 'static> {
+pub struct ConfigRef<'a, T>
+where
+    T: Source + Any,
+{
     guard: RwLockReadGuard<'a, Box<dyn Any + Send + Sync>>,
     _marker: PhantomData<&'a T>,
 }
@@ -47,12 +71,19 @@ pub struct ConfigRef<'a, T: 'static> {
 /// One should drop it as soon as possible to avoid deadlocks.
 /// # Deadlocks
 /// - If you already held a [`ConfigRef`] or [`ConfigMut`], [`Config::get_mut()`] will block until you drop it.
-pub struct ConfigMut<'a, T: 'static> {
+pub struct ConfigMut<'a, T>
+where
+    T: Source + Any,
+{
     guard: RwLockWriteGuard<'a, Box<dyn Any + Send + Sync>>,
+    dirty: bool,
     _marker: PhantomData<&'a mut T>,
 }
 
-impl<T: 'static> Deref for ConfigRef<'_, T> {
+impl<T> Deref for ConfigRef<'_, T>
+where
+    T: Source + Any,
+{
     type Target = T;
 
     fn deref(&self) -> &T {
@@ -60,7 +91,10 @@ impl<T: 'static> Deref for ConfigRef<'_, T> {
     }
 }
 
-impl<T: 'static> Deref for ConfigMut<'_, T> {
+impl<T> Deref for ConfigMut<'_, T>
+where
+    T: Source + Any,
+{
     type Target = T;
 
     fn deref(&self) -> &T {
@@ -68,53 +102,61 @@ impl<T: 'static> Deref for ConfigMut<'_, T> {
     }
 }
 
-impl<T: 'static> DerefMut for ConfigMut<'_, T> {
+impl<T> DerefMut for ConfigMut<'_, T>
+where
+    T: Source + Any,
+{
     fn deref_mut(&mut self) -> &mut T {
+        self.dirty = true;
         self.guard.downcast_mut().unwrap()
     }
 }
 
-trait FromCache {
-    type Item<'new>;
-
-    fn retrieve(cache: &Cache) -> ConfigResult<Self::Item<'_>>;
+trait Cacheable
+where
+    Self: Source + Any + Sized,
+{
+    fn retrieve(cache: &mut Cache) -> ConfigRef<'_, Self>;
+    fn retrieve_mut(cache: &mut Cache) -> ConfigMut<'_, Self>;
+    fn take(cache: &mut Cache) -> Self;
 }
 
-impl<T: 'static> FromCache for ConfigRef<'_, T> {
-    type Item<'new> = ConfigRef<'new, T>;
-
-    fn retrieve(cache: &Cache) -> ConfigResult<Self::Item<'_>> {
-        let guard = cache
-            .get(&TypeId::of::<T>())
-            .context(ConfigNotFound {
-                r#type: type_name::<T>(),
-            })?
-            .inner
-            .read()
-            .unwrap();
-        Ok(ConfigRef {
-            guard,
+impl<T> Cacheable for T
+where
+    T: Source + Any + Send + Sync,
+{
+    fn retrieve(cache: &mut Cache) -> ConfigRef<'_, T> {
+        ConfigRef {
+            guard: cache.get_or_default::<T>().inner.read().unwrap(),
             _marker: PhantomData,
-        })
+        }
+    }
+
+    fn retrieve_mut(cache: &mut Cache) -> ConfigMut<'_, T> {
+        ConfigMut {
+            guard: cache.get_or_default::<T>().inner.write().unwrap(),
+            dirty: false,
+            _marker: PhantomData,
+        }
+    }
+
+    fn take(cache: &mut Cache) -> T {
+        cache.take_or_default::<T>()
     }
 }
 
-impl<T: 'static> FromCache for ConfigMut<'_, T> {
-    type Item<'new> = ConfigMut<'new, T>;
-
-    fn retrieve(cache: &Cache) -> ConfigResult<Self::Item<'_>> {
-        let guard = cache
-            .get(&TypeId::of::<T>())
-            .context(ConfigNotFound {
-                r#type: type_name::<T>(),
-            })?
-            .inner
-            .write()
-            .unwrap();
-        Ok(ConfigMut {
-            guard,
-            _marker: PhantomData,
-        })
+impl<T> Drop for ConfigMut<'_, T>
+where
+    T: Source + Any,
+{
+    fn drop(&mut self) {
+        if self.dirty {
+            if let Err(e) = self.save() {
+                println!(
+                    "Error from encrypt_config: {e}\nThis msg is printed while saving as dropping."
+                );
+            }
+        }
     }
 }
 
@@ -126,141 +168,76 @@ impl Config {
         doc = "To avoid entering the password during testing, you can enable `mock` feature. This can always return the **same** Encrypter during **each** test."
     )]
     pub fn new() -> Self {
-        Self {
-            cache: HashMap::new(),
-        }
-    }
-
-    /// Load sources to the `Config`.
-    /// `T: Source` or tuple of `T: Source` like `(T1, T2, T3)`.
-    /// Please make sure each kind of source is loaded only once,
-    /// or the later one will overwrite the previous one.
-    /// If load fails (not existing or failed to decrypt),
-    /// it will use the default value.
-    #[allow(private_bounds)]
-    pub fn load_source<T>(&mut self)
-    where
-        T: SaveLoad,
-    {
-        T::load_to(&mut self.cache);
-    }
-
-    /// Save sources in the `Config`.
-    /// `T: Source` or tuple of `T: Source` like `(T1, T2, T3)`.
-    /// # Deadlocks
-    /// This method will try to get [`ConfigRef`] from the cache, so if [`ConfigMut`]
-    /// exists, it will block until it is dropped.
-    /// # Errors
-    /// - If one of the sources is not found in the cache, it will return an error,
-    /// and none of the sources will be saved.
-    /// - If one of the sources fails to save (io error), it will return an error,
-    /// sources that have been saved will not be rolled back, the rest will not be saved,
-    /// and the file which stores the failed source may lose its content (just making sure
-    /// you always have the right permission to operate the target file is okay).
-    #[allow(private_bounds)]
-    pub fn save<T>(&self) -> ConfigResult<()>
-    where
-        T: SaveLoad,
-    {
-        T::save(&self.cache)
+        Self::default()
     }
 
     /// Get an immutable ref from the config.
     /// See [`ConfigRef`] for more details.
-    pub fn get<T>(&self) -> ConfigResult<ConfigRef<T>>
+    pub fn get<T>(&mut self) -> ConfigRef<T>
     where
-        T: Any + 'static,
+        T: Source + Any + Send + Sync,
     {
-        ConfigRef::retrieve(&self.cache)
+        T::retrieve(&mut self.cache)
     }
 
     /// Get a mutable ref from the config.
     /// See [`ConfigMut`] for more details.
-    pub fn get_mut<T>(&self) -> ConfigResult<ConfigMut<T>>
+    pub fn get_mut<T>(&mut self) -> ConfigMut<T>
     where
-        T: Any + 'static,
+        T: Source + Any + Send + Sync,
     {
-        ConfigMut::retrieve(&self.cache)
+        T::retrieve_mut(&mut self.cache)
     }
 
     /// Take the ownership of the config value.
     /// This will remove the value from the config.
-    pub fn take<T>(&mut self) -> ConfigResult<T>
+    pub fn take<T>(&mut self) -> T
     where
-        T: Any + 'static,
+        T: Source + Any + Send + Sync,
     {
-        let value = self
-            .cache
-            .remove(&TypeId::of::<T>())
-            .context(ConfigNotFound {
-                r#type: type_name::<T>(),
-            })?;
-        let value = value
-            .inner
-            .into_inner()
-            .expect("EncryptConfig: Rwlock is poisoned");
-        Ok(*value.downcast().unwrap())
+        T::take(&mut self.cache)
+    }
+
+    /// Save the config value manually.
+    /// Note that the changes you made through [`ConfigMut`]
+    /// will be saved as it leaves the scope.
+    pub fn save<T>(&mut self) {
+        todo!()
     }
 }
 
-/// This trait is used to save and load the configuration values.
-trait SaveLoad {
-    fn save(cache: &Cache) -> ConfigResult<()>;
-    fn load_to(cache: &mut Cache);
-}
-
-macro_rules! impl_savaload {
+macro_rules! impl_fromcache {
     ($($t: ident),+) => {
-        impl<$($t, )+> SaveLoad for ($($t, )+)
+        impl<$($t, )+> Cacheable for ($($t, )+)
         where
-            $($t: Any + Source + Send + Sync + 'static,)+
+            $($t: Source + Any + Send + Sync,)+
         {
             #[allow(non_snake_case)]
-            fn save(cache: &Cache) -> ConfigResult<()> {
-                $(let $t = ConfigRef::<$t>::retrieve(cache)?;)+
-                $($t.save()?;)+
-                Ok(())
+            fn retrieve(cache: &mut Cache) -> ($(ConfigRef<'_, $t>,)+) {
+                $(let $t = $t::retrieve(cache);)+
+                ($($t,)+)
             }
 
             #[allow(non_snake_case)]
-            fn load_to(cache: &mut Cache) {
-                $(let $t = $t::load_or_default();)+
-                $(cache.insert(
-                    TypeId::of::<$t>(),
-                    CacheValue {
-                        inner: RwLock::new(Box::new($t)),
-                    },
-                );)+
+            fn retrieve_mut(cache: &mut Cache) -> ($(ConfigMut<'_, $t>,)+) {
+                $(let $t = $t::retrieve_mut(cache);)+
+                ($($t,)+)
+            }
+
+            #[allow(non_snake_case)]
+            fn take(cache: &mut Cache) -> ($($t,)+) {
+                $(let $t = $t::take(cache);)+
+                ($($t,)+)
             }
         }
     };
 }
 
-impl<T> SaveLoad for T
-where
-    T: Any + Source + Send + Sync + 'static,
-{
-    fn save(cache: &Cache) -> ConfigResult<()> {
-        let t = ConfigRef::<T>::retrieve(cache)?;
-        t.save()
-    }
-
-    fn load_to(cache: &mut Cache) {
-        let t = T::load_or_default();
-        cache.insert(
-            TypeId::of::<T>(),
-            CacheValue {
-                inner: RwLock::new(Box::new(t)),
-            },
-        );
-    }
-}
-
-impl_savaload!(T1);
-impl_savaload!(T1, T2);
-impl_savaload!(T1, T2, T3);
-impl_savaload!(T1, T2, T3, T4);
-impl_savaload!(T1, T2, T3, T4, T5);
-impl_savaload!(T1, T2, T3, T4, T5, T6);
-impl_savaload!(T1, T2, T3, T4, T5, T6, T7);
-impl_savaload!(T1, T2, T3, T4, T5, T6, T7, T8);
+// impl_fromcache!(T1);
+// impl_fromcache!(T1, T2);
+// impl_fromcache!(T1, T2, T3);
+// impl_fromcache!(T1, T2, T3, T4);
+// impl_fromcache!(T1, T2, T3, T4, T5);
+// impl_fromcache!(T1, T2, T3, T4, T5, T6);
+// impl_fromcache!(T1, T2, T3, T4, T5, T6, T7);
+// impl_fromcache!(T1, T2, T3, T4, T5, T6, T7, T8);

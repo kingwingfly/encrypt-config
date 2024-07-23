@@ -143,7 +143,6 @@ fn config() -> &'static Config {
     static CONFIG: OnceLock<Config> = OnceLock::new();
     CONFIG.get_or_init(|| {
         let mut config = Config::default();
-        config.load_source::<(NormalConfig, PersistConfig, SecretConfig)>();
         config
     })
 }
@@ -153,9 +152,12 @@ let cfg = config();
     let normal_config = cfg.get::<NormalConfig>().unwrap();
     assert_eq!(normal_config.count, 0);
 }
-let mut normal_config = cfg.get_mut::<NormalConfig>().unwrap();
-normal_config.count = 42;
-assert_eq!(normal_config.count, 42);
+{
+    let mut normal_config = cfg.get_mut::<NormalConfig>().unwrap();
+    normal_config.count = 42;
+    assert_eq!(normal_config.count, 42);
+    // change saved automatically after dropped
+}
 
 let jh = std::thread::spawn(|| {
     // work in another thread
@@ -163,19 +165,15 @@ let jh = std::thread::spawn(|| {
     let mut persist_config = cfg.get_mut::<PersistConfig>().unwrap();
     persist_config.name = "Louis".to_string();
     persist_config.age = 22;
-    // save to file
-    persist_config.save().unwrap();
+    // change saved automatically after dropped
 });
 let cfg = config();
 let mut secret_config = cfg.get_mut::<SecretConfig>().unwrap();
 secret_config.password = "123456".to_string();
-// encrypt and save to file
-secret_config.save().unwrap();
 jh.join().unwrap();
 
 // let's new a config in the next start
 let mut config = Config::default();
-config.load_source::<(NormalConfig, PersistConfig, SecretConfig)>();
 
 // normal config will not be saved
 assert_eq!(config.get::<NormalConfig>().unwrap().count, 0);
@@ -188,7 +186,7 @@ assert_eq!(config.get::<SecretConfig>().unwrap().password, "123456");
 let encrypted_file = std::fs::File::open(SecretConfig::path()).unwrap();
 assert!(serde_json::from_reader::<_, SecretConfig>(encrypted_file).is_err());
 
-// You can also save in this way
+// You can also save manually
 config.save::<(PersistConfig, SecretConfig)>().unwrap();
 # }
 ```
