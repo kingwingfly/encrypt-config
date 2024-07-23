@@ -141,7 +141,7 @@ struct SecretConfig {
 
 fn config() -> &'static Config {
     static CONFIG: OnceLock<Config> = OnceLock::new();
-    CONFIG.get_or_init(|| Config::default())
+    CONFIG.get_or_init(Config::default)
 }
 
 let cfg = config();
@@ -170,7 +170,7 @@ let jh = std::thread::spawn(|| {
 }
 jh.join().unwrap();
 
-// Assume this is new a config in the next start
+// Assume this is a new config in the next start
 let config = Config::default();
 
 // normal config will not be saved

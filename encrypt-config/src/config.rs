@@ -76,7 +76,8 @@ where
 /// This holds a `RwLockWriteGuard` of the config value until the end of the scope.
 /// It is used to get a mutable reference to the config value.
 /// One should drop it as soon as possible to avoid deadlocks.
-/// The value will be saved as dropping if changed, if saving fails, it will print the error.
+///
+/// The value will be written back as dropping if changed. If saving fails, it will print an error.
 /// # Deadlocks
 /// - If you already held a [`ConfigRef`] or [`ConfigMut`], [`Config::get_mut()`] will block until you drop it.
 pub struct ConfigMut<'a, T>
@@ -172,6 +173,9 @@ where
 
 impl Config {
     /// Create a new [`Config`] struct.
+    /// This behaves like a native cache in CPU:
+    /// 1. If cache hit, return the value when reading, and update the value and write back when writing.
+    /// 2. If cache miss, load the value from the source to cache when reading, write and load when writing.
     ///
     #[cfg_attr(
         feature = "secret",
@@ -214,6 +218,10 @@ impl Config {
     /// Save the config value manually.
     /// Note that the changes you made through [`ConfigMut`]
     /// will be saved as leaving the scope automatically.
+    ///
+    /// Ideally, it's better to change cache first and then set dirty flag when writing,
+    /// and save the value when the cache drops. However, this is hard to implement
+    /// for manual saving by now. So, one is supposed to use `get` and `get_mut` to change the value.
     pub fn save<T>(&self, value: T) -> ConfigResult<()>
     where
         T: Source + Any + Send + Sync,
