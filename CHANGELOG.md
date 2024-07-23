@@ -10,6 +10,10 @@ Note: In this file, do not use the hard wrap in the middle of a sentence for com
 
 ## [Unreleased]
 
+## [0.4.1] - 2024-07-24
+
+- improve doc
+
 ## [0.4.0] - 2024-07-23
 
 - improve: make the cache behaves like native cache
