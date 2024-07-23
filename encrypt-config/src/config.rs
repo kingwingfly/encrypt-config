@@ -20,13 +20,13 @@ struct Cache {
 }
 
 impl Cache {
-    fn get_or_default<T: Source + Any + Send + Sync>(&mut self) -> &mut CacheValue {
+    fn get_or_default<T: Source + Any + Send + Sync>(&self) -> &mut CacheValue {
         self.inner.entry(TypeId::of::<T>()).or_insert(CacheValue {
             inner: RwLock::new(Box::new(T::load_or_default())),
         })
     }
 
-    fn take_or_default<T: Source + Any + Send + Sync>(&mut self) -> T {
+    fn take_or_default<T: Source + Any + Send + Sync>(&self) -> T {
         match self.inner.remove(&TypeId::of::<T>()) {
             Some(value) => *value
                 .inner
@@ -39,7 +39,7 @@ impl Cache {
     }
 }
 
-/// A struct that can be used to store configuration values.
+/// A struct that can be used to **cache** configuration values.
 pub struct Config {
     cache: Cache,
 }
@@ -69,6 +69,7 @@ where
 /// This holds a `RwLockWriteGuard` of the config value until the end of the scope.
 /// It is used to get a mutable reference to the config value.
 /// One should drop it as soon as possible to avoid deadlocks.
+/// The value will be saved as dropping if changed, if saving fails, it will print the error.
 /// # Deadlocks
 /// - If you already held a [`ConfigRef`] or [`ConfigMut`], [`Config::get_mut()`] will block until you drop it.
 pub struct ConfigMut<'a, T>
@@ -116,23 +117,23 @@ trait Cacheable
 where
     Self: Source + Any + Sized,
 {
-    fn retrieve(cache: &mut Cache) -> ConfigRef<'_, Self>;
-    fn retrieve_mut(cache: &mut Cache) -> ConfigMut<'_, Self>;
-    fn take(cache: &mut Cache) -> Self;
+    fn retrieve(cache: &Cache) -> ConfigRef<'_, Self>;
+    fn retrieve_mut(cache: &Cache) -> ConfigMut<'_, Self>;
+    fn take(cache: &Cache) -> Self;
 }
 
 impl<T> Cacheable for T
 where
     T: Source + Any + Send + Sync,
 {
-    fn retrieve(cache: &mut Cache) -> ConfigRef<'_, T> {
+    fn retrieve(cache: &Cache) -> ConfigRef<'_, T> {
         ConfigRef {
             guard: cache.get_or_default::<T>().inner.read().unwrap(),
             _marker: PhantomData,
         }
     }
 
-    fn retrieve_mut(cache: &mut Cache) -> ConfigMut<'_, T> {
+    fn retrieve_mut(cache: &Cache) -> ConfigMut<'_, T> {
         ConfigMut {
             guard: cache.get_or_default::<T>().inner.write().unwrap(),
             dirty: false,
@@ -140,7 +141,7 @@ where
         }
     }
 
-    fn take(cache: &mut Cache) -> T {
+    fn take(cache: &Cache) -> T {
         cache.take_or_default::<T>()
     }
 }
@@ -174,59 +175,59 @@ impl Config {
 
     /// Get an immutable ref from the config.
     /// See [`ConfigRef`] for more details.
-    pub fn get<T>(&mut self) -> ConfigRef<T>
+    pub fn get<T>(&self) -> ConfigRef<T>
     where
         T: Source + Any + Send + Sync,
     {
-        T::retrieve(&mut self.cache)
+        T::retrieve(&self.cache)
     }
 
     /// Get a mutable ref from the config.
     /// See [`ConfigMut`] for more details.
-    pub fn get_mut<T>(&mut self) -> ConfigMut<T>
+    pub fn get_mut<T>(&self) -> ConfigMut<T>
     where
         T: Source + Any + Send + Sync,
     {
-        T::retrieve_mut(&mut self.cache)
+        T::retrieve_mut(&self.cache)
     }
 
     /// Take the ownership of the config value.
     /// This will remove the value from the config.
-    pub fn take<T>(&mut self) -> T
+    pub fn take<T>(&self) -> T
     where
         T: Source + Any + Send + Sync,
     {
-        T::take(&mut self.cache)
+        T::take(&self.cache)
     }
 
     /// Save the config value manually.
     /// Note that the changes you made through [`ConfigMut`]
     /// will be saved as it leaves the scope.
-    pub fn save<T>(&mut self) {
+    pub fn save<T>(&self) {
         todo!()
     }
 }
 
-macro_rules! impl_fromcache {
+macro_rules! impl_cacheable {
     ($($t: ident),+) => {
-        impl<$($t, )+> Cacheable for ($($t, )+)
+        impl<$($t, )+> Cacheable for ($($t,)+)
         where
             $($t: Source + Any + Send + Sync,)+
         {
             #[allow(non_snake_case)]
-            fn retrieve(cache: &mut Cache) -> ($(ConfigRef<'_, $t>,)+) {
+            fn retrieve(cache: &Cache) -> ($(ConfigRef<'_, $t>,)+) {
                 $(let $t = $t::retrieve(cache);)+
                 ($($t,)+)
             }
 
             #[allow(non_snake_case)]
-            fn retrieve_mut(cache: &mut Cache) -> ($(ConfigMut<'_, $t>,)+) {
+            fn retrieve_mut(cache: &Cache) -> ($(ConfigMut<'_, $t>,)+) {
                 $(let $t = $t::retrieve_mut(cache);)+
                 ($($t,)+)
             }
 
             #[allow(non_snake_case)]
-            fn take(cache: &mut Cache) -> ($($t,)+) {
+            fn take(cache: &Cache) -> ($($t,)+) {
                 $(let $t = $t::take(cache);)+
                 ($($t,)+)
             }
@@ -234,11 +235,11 @@ macro_rules! impl_fromcache {
     };
 }
 
-// impl_fromcache!(T1);
-// impl_fromcache!(T1, T2);
-// impl_fromcache!(T1, T2, T3);
-// impl_fromcache!(T1, T2, T3, T4);
-// impl_fromcache!(T1, T2, T3, T4, T5);
-// impl_fromcache!(T1, T2, T3, T4, T5, T6);
-// impl_fromcache!(T1, T2, T3, T4, T5, T6, T7);
-// impl_fromcache!(T1, T2, T3, T4, T5, T6, T7, T8);
+// impl_cacheable!(T1);
+impl_cacheable!(T1, T2);
+// impl_cacheable!(T1, T2, T3);
+// impl_cacheable!(T1, T2, T3, T4);
+// impl_cacheable!(T1, T2, T3, T4, T5);
+// impl_cacheable!(T1, T2, T3, T4, T5, T6);
+// impl_cacheable!(T1, T2, T3, T4, T5, T6, T7);
+// impl_cacheable!(T1, T2, T3, T4, T5, T6, T7, T8);
