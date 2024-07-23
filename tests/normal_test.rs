@@ -7,7 +7,7 @@ struct NormalConfig {
 
 #[test]
 fn normal_test() {
-    let mut config = Config::default();
+    let config = Config::default();
     {
         let normal_config = config.get::<NormalConfig>();
         assert_eq!(normal_config.value, 0);

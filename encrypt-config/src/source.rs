@@ -24,7 +24,7 @@ pub trait Source: Default {
     /// Load logic for the source, return default value if failed.
     fn load_or_default() -> Self
     where
-        Self: Sized,
+        Self: Sized + Default,
     {
         Self::load().unwrap_or_default()
     }
