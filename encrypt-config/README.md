@@ -198,6 +198,7 @@ _For more examples, please refer to the [Example](https://github.com/kingwingfly
 <!-- CHANGELOG -->
 ## Changelog
 
+- v0.3.x -> v0.4.x: Cache inside `Config` now behave more like a native cache. Changes will be saved as `ConfigMut` dropped automatically.
 - v0.2.x -> v0.3.x: Now, multi-config-sources can be saved and loaded through `Config` in one go. But `add_xx_source`s are removed. By the way, one can defined their own sources by implementing `Source` trait while `NormalSource` `PersistSource` `SecretSource` are still provided.
 - v0.1.x -> v0.2.x: A broken change has been made. Heavily refactored with `std::any` and methods from `dependencies injection`.
 
