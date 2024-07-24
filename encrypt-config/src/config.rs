@@ -104,6 +104,45 @@ impl Config {
         T::take(&self.cache)
     }
 
+    /// Get many immutable refs from the config.
+    ///
+    /// T: (T1, T2, T3,)
+    ///
+    /// If the value is not found, it will be created with the default value.
+    /// See [`ConfigRef`] for more details.
+    pub fn get_many<T>(&self) -> <T as Cacheable<((),)>>::Ref<'_>
+    where
+        T: Cacheable<((),)> + Any + Send + Sync,
+    {
+        T::retrieve(&self.cache)
+    }
+
+    /// Get many mutable refs from the config.
+    ///
+    /// T: (T1, T2, T3,)
+    ///
+    /// If the value is not found, it will be created with the default value.
+    /// See [`ConfigMut`] for more details.
+    pub fn get_mut_many<T>(&self) -> <T as Cacheable<((),)>>::Mut<'_>
+    where
+        T: Cacheable<((),)> + Any + Send + Sync,
+    {
+        T::retrieve_mut(&self.cache)
+    }
+
+    /// Take the ownerships of the config value.
+    ///
+    /// T: (T1, T2, T3,)
+    ///
+    /// If the value is not found, it will be created with the default value.
+    /// This will remove the value from the config.
+    pub fn take_many<T>(&self) -> <T as Cacheable<((),)>>::Owned
+    where
+        T: Cacheable<((),)> + Any + Send + Sync,
+    {
+        T::take(&self.cache)
+    }
+
     /// Save the config value manually.
     /// Note that the changes you made through [`ConfigMut`]
     /// will be saved as leaving the scope automatically.
@@ -210,7 +249,8 @@ where
     }
 }
 
-trait Cacheable<T>
+#[allow(missing_docs, private_bounds, private_interfaces)]
+pub trait Cacheable<T>
 where
     Self: Any,
 {
@@ -222,6 +262,7 @@ where
     fn take(cache: &Cache) -> Self::Owned;
 }
 
+#[allow(private_bounds, private_interfaces)]
 impl<T> Cacheable<()> for T
 where
     T: Source + Any + Send + Sync,
@@ -252,6 +293,7 @@ where
 
 macro_rules! impl_cacheable {
     ($($t: ident),+$(,)?) => {
+        #[allow(private_bounds, private_interfaces)]
         impl<$($t,)+> Cacheable<((),)> for ($($t,)+)
         where
             $($t: Cacheable<()>,)+

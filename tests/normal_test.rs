@@ -11,6 +11,8 @@ fn normal_test() {
     {
         let normal_config = config.get::<NormalConfig>();
         assert_eq!(normal_config.value, 0);
+        let (normal_config,) = config.get_many::<(NormalConfig,)>();
+        assert_eq!(normal_config.value, 0);
     }
     {
         let mut normal_config = config.get_mut::<NormalConfig>();
