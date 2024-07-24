@@ -34,7 +34,7 @@ fn secret_test() {
         assert_eq!(secret_config.value, 42);
     }
     {
-        let (mut secret,) = config.get_mut_many::<(SecretConfig,)>();
+        let (mut secret, _) = config.get_mut_many::<(SecretConfig,)>();
         secret.value = 0;
     }
     {

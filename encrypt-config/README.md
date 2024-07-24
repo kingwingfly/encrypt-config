@@ -105,10 +105,10 @@ One of `linux-secret-service` and `linux-keyutils` features should be enabled on
 ### Import
 ```toml
 [target.'cfg(target_os = "linux")'.dependencies]
-encrypt_config = { version = "0.3", features = ["full", "linux-secret-service"] }
+encrypt_config = { version = "0.4", features = ["full", "linux-secret-service"] }
 
 [target.'cfg(not(target_os = "linux"))'.dependencies]
-encrypt_config = { version = "0.3", features = ["full"] }
+encrypt_config = { version = "0.4", features = ["full"] }
 
 [profile.dev.package.num-bigint-dig]
 opt-level = 3
