@@ -50,6 +50,11 @@ impl Cache {
 /// This behaves like a native cache in CPU:
 /// 1. If cache hit, return the cached value when reading, while update the cached value and then write back when writing.
 /// 2. If cache miss, load the cached value from the source to cache when reading, while write and then load when writing.
+///
+#[cfg_attr(
+    feature = "secret",
+    doc = "To avoid entering the password during testing, you can enable `mock` feature. This can always return the **same** Encrypter during **each** test."
+)]
 pub struct Config {
     cache: Cache,
 }
@@ -60,6 +65,70 @@ impl Default for Config {
         Self {
             cache: Cache::default(),
         }
+    }
+}
+
+impl Config {
+    /// Create a new [`Config`] cache.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Get an immutable ref from the config.
+    /// If the value is not found, it will be created with the default value.
+    /// See [`ConfigRef`] for more details.
+    pub fn get<T>(&self) -> ConfigRef<T>
+    where
+        T: Source + Any + Send + Sync,
+    {
+        T::retrieve(&self.cache)
+    }
+
+    /// Get a mutable ref from the config.
+    /// If the value is not found, it will be created with the default value.
+    /// See [`ConfigMut`] for more details.
+    pub fn get_mut<T>(&self) -> ConfigMut<T>
+    where
+        T: Source + Any + Send + Sync,
+    {
+        T::retrieve_mut(&self.cache)
+    }
+
+    /// Take the ownership of the config value.
+    /// If the value is not found, it will be created with the default value.
+    /// This will remove the value from the config.
+    pub fn take<T>(&self) -> T
+    where
+        T: Source + Any + Send + Sync,
+    {
+        T::take(&self.cache)
+    }
+
+    /// Save the config value manually.
+    /// Note that the changes you made through [`ConfigMut`]
+    /// will be saved as leaving the scope automatically.
+    ///
+    /// Ideally, it's better to change cache first and then set dirty flag when writing,
+    /// and save the value when the cache drops. However, this is hard to implement
+    /// for manual saving by now. So, one is supposed to use `get` and `get_mut` to change the value.
+    pub fn save<T>(&self, value: T) -> ConfigResult<()>
+    where
+        T: Source + Any + Send + Sync,
+    {
+        // TODO:
+        // If cache hit, write cache and set dirty, write back when dropping Cache
+        // instead of writing back here.
+        value.save()?;
+        // SAFETY:
+        match unsafe { (*self.cache.inner.get()).get_mut(&TypeId::of::<T>()) } {
+            Some(cache) => {
+                *cache.inner.write().unwrap() = Box::new(value);
+            }
+            None => {
+                T::retrieve(&self.cache);
+            }
+        }
+        Ok(())
     }
 }
 
@@ -171,74 +240,5 @@ where
 
     fn take(cache: &Cache) -> T {
         cache.take_or_default::<T>()
-    }
-}
-
-impl Config {
-    /// Create a new [`Config`] cache.
-    ///
-    #[cfg_attr(
-        feature = "secret",
-        doc = "To avoid entering the password during testing, you can enable `mock` feature. This can always return the **same** Encrypter during **each** test."
-    )]
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Get an immutable ref from the config.
-    /// If the value is not found, it will be created with the default value.
-    /// See [`ConfigRef`] for more details.
-    pub fn get<T>(&self) -> ConfigRef<T>
-    where
-        T: Source + Any + Send + Sync,
-    {
-        T::retrieve(&self.cache)
-    }
-
-    /// Get a mutable ref from the config.
-    /// If the value is not found, it will be created with the default value.
-    /// See [`ConfigMut`] for more details.
-    pub fn get_mut<T>(&self) -> ConfigMut<T>
-    where
-        T: Source + Any + Send + Sync,
-    {
-        T::retrieve_mut(&self.cache)
-    }
-
-    /// Take the ownership of the config value.
-    /// If the value is not found, it will be created with the default value.
-    /// This will remove the value from the config.
-    pub fn take<T>(&self) -> T
-    where
-        T: Source + Any + Send + Sync,
-    {
-        T::take(&self.cache)
-    }
-
-    /// Save the config value manually.
-    /// Note that the changes you made through [`ConfigMut`]
-    /// will be saved as leaving the scope automatically.
-    ///
-    /// Ideally, it's better to change cache first and then set dirty flag when writing,
-    /// and save the value when the cache drops. However, this is hard to implement
-    /// for manual saving by now. So, one is supposed to use `get` and `get_mut` to change the value.
-    pub fn save<T>(&self, value: T) -> ConfigResult<()>
-    where
-        T: Source + Any + Send + Sync,
-    {
-        // TODO:
-        // If cache hit, write cache and set dirty, write back when dropping Cache
-        // instead of writing back here.
-        value.save()?;
-        // SAFETY:
-        match unsafe { (*self.cache.inner.get()).get_mut(&TypeId::of::<T>()) } {
-            Some(cache) => {
-                *cache.inner.write().unwrap() = Box::new(value);
-            }
-            None => {
-                T::retrieve(&self.cache);
-            }
-        }
-        Ok(())
     }
 }
