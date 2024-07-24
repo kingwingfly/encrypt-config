@@ -9,6 +9,12 @@ Note: In this file, do not use the hard wrap in the middle of a sentence for com
 -->
 
 ## [Unreleased]
+## [0.5.0-alpha1] - 2024-07-24
+
+- remove all locks
+- more like CPU cache now
+- save to the source when `Config` cache dropped instead of `ConfigMut`
+
 ## [0.4.2] - 2024-07-24
 
 - improve doc
