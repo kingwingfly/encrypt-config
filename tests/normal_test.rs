@@ -7,20 +7,18 @@ struct NormalConfig {
 
 #[test]
 fn normal_test() {
-    let config = Config::default();
     {
-        let normal_config = config.get::<NormalConfig>();
-        assert_eq!(normal_config.value, 0);
-        let (normal_config,) = config.get_many::<(NormalConfig,)>();
-        assert_eq!(normal_config.value, 0);
-    }
-    {
-        let mut normal_config = config.get_mut::<NormalConfig>();
-        normal_config.value = 42;
-        assert_eq!(normal_config.value, 42);
-    }
-    {
-        let normal_config = config.take::<NormalConfig>();
-        assert_eq!(normal_config.value, 42);
+        let cfg = Config::default();
+        let normal = cfg.get::<NormalConfig>();
+        assert_eq!(normal.value, 0);
+        let (normal,) = cfg.get_many::<(NormalConfig,)>();
+        assert_eq!(normal.value, 0);
+
+        let mut normal = cfg.get_mut::<NormalConfig>();
+        normal.value = 42;
+        assert_eq!(normal.value, 42);
+
+        let normal = cfg.take::<NormalConfig>();
+        assert_eq!(normal.value, 42);
     }
 }

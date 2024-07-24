@@ -15,6 +15,7 @@ documentation = "https://docs.rs/encrypt-config"
 encrypt_config = { path = "encrypt-config", default-features = false }
 encrypt_config_derive = { path = "encrypt-config-derive", default-features = false, version = "0.4.2" }
 keyring = { version = "2.3", default-features = false }
+bitflags = { version = "2.6.0" }
 
 [profile.dev.package.num-bigint-dig]
 opt-level = 3

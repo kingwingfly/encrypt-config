@@ -14,19 +14,18 @@ struct PersistConfig {
 #[test]
 fn persist_test() {
     std::fs::remove_file(PersistConfig::path()).ok();
-    let config = Config::default();
     {
-        let persist_config = config.get::<PersistConfig>();
-        assert_eq!(persist_config.value, 0);
+        let cfg = Config::default();
+        let persist = cfg.get::<PersistConfig>();
+        assert_eq!(persist.value, 0);
+        let mut persist = cfg.get_mut::<PersistConfig>();
+        persist.value = 42;
+        assert_eq!(persist.value, 42);
     }
     {
-        let mut persist_config = config.get_mut::<PersistConfig>();
-        persist_config.value = 42;
-        assert_eq!(persist_config.value, 42);
+        let cfg = Config::default();
+        let persist = cfg.get::<PersistConfig>();
+        assert_eq!(persist.value, 42);
     }
-
-    let config = Config::default();
-    let persist_config = config.get::<PersistConfig>();
-    assert_eq!(persist_config.value, 42);
     std::fs::remove_file(PersistConfig::path()).ok();
 }

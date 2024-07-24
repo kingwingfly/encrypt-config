@@ -20,6 +20,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1" }
 rsa = { version = "0.9.6", features = ["serde"], optional = true }
 rand = { version = "0.8.5", optional = true }
+bitflags = { workspace = true }
 dirs = { version = "5.0.1", optional = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]

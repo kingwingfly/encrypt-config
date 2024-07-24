@@ -3,44 +3,100 @@
 
 use crate::{error::ConfigResult, Source};
 use std::{
+    any::type_name,
     any::{Any, TypeId},
     cell::UnsafeCell,
     collections::HashMap,
     marker::PhantomData,
     ops::{Deref, DerefMut},
-    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
+bitflags::bitflags! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct CacheFlags: u8 {
+        const VALID = 1;
+        const DIRTY = 1 << 1;
+        const WRITING = 1 << 2;
+    }
+}
+
 struct CacheValue {
-    inner: RwLock<Box<dyn Any + Send + Sync>>,
+    inner: UnsafeCell<Box<dyn Any + Send + Sync>>,
+    #[allow(clippy::type_complexity)]
+    write_back_fn: Box<dyn Fn(&Box<dyn Any + Send + Sync>)>,
+    flags: UnsafeCell<CacheFlags>,
+}
+
+impl CacheValue {
+    fn write_back(&mut self) {
+        let inner = unsafe { &*self.inner.get() };
+        (self.write_back_fn)(inner);
+        self.flags.get_mut().remove(CacheFlags::DIRTY);
+    }
+}
+
+impl Drop for CacheValue {
+    fn drop(&mut self) {
+        if self.flags.get_mut().contains(CacheFlags::DIRTY)
+            & self.flags.get_mut().contains(CacheFlags::VALID)
+        {
+            self.write_back();
+        }
+    }
 }
 
 #[derive(Default)]
 struct Cache {
     inner: UnsafeCell<HashMap<TypeId, CacheValue>>,
 }
-unsafe impl Sync for Cache {}
 
 impl Cache {
     fn get_or_default<T: Source + Any + Send + Sync>(&self) -> &CacheValue {
-        // SAFETY: The inner value is behind a RwLock.
-        let map = unsafe { &mut *self.inner.get() };
-        map.entry(TypeId::of::<T>()).or_insert(CacheValue {
-            inner: RwLock::new(Box::new(T::load_or_default())),
-        })
+        // SAFETY:
+        match unsafe { &mut *self.inner.get() }.get_mut(&TypeId::of::<T>()) {
+            Some(value) if unsafe { &*value.flags.get() }.contains(CacheFlags::VALID) => {
+                if value.flags.get_mut().contains(CacheFlags::WRITING) {
+                    panic!("Cannot get a value <{}> while writing.", type_name::<T>());
+                }
+                value
+            }
+            Some(value) => {
+                value.inner = UnsafeCell::new(Box::new(T::load_or_default()));
+                value.flags.get_mut().insert(CacheFlags::VALID);
+                value
+            }
+            // SAFETY: This is safe since cache is missing
+            None => unsafe { &mut *self.inner.get() }
+                .entry(TypeId::of::<T>())
+                .or_insert(CacheValue {
+                    inner: UnsafeCell::new(Box::new(T::load_or_default())),
+                    write_back_fn: Box::new(|this: &Box<dyn Any + Send + Sync>| {
+                        this.downcast_ref::<T>().unwrap().save().ok();
+                    }),
+                    flags: UnsafeCell::new(CacheFlags::VALID),
+                }),
+        }
     }
 
     fn take_or_default<T: Source + Any + Send + Sync>(&self) -> T {
-        // SAFETY: UnsafeCell is used to allow interior mutability.
+        // SAFETY:
         let map = unsafe { &mut *self.inner.get() };
-
         match map.remove(&TypeId::of::<T>()) {
-            Some(value) => *value
-                .inner
-                .into_inner()
-                .expect("EncryptConfig: Rwlock is poisoned")
-                .downcast()
-                .unwrap(),
+            Some(mut value) if unsafe { &*value.flags.get() }.contains(CacheFlags::VALID) => {
+                if value.flags.get_mut().contains(CacheFlags::WRITING) {
+                    panic!("Cannot take a value <{}> while writing.", type_name::<T>());
+                }
+                value.flags.get_mut().remove(CacheFlags::VALID);
+                unsafe {
+                    std::mem::transmute_copy((*value.inner.get()).downcast_ref::<T>().unwrap())
+                }
+            }
+            Some(mut value) => {
+                value.inner = UnsafeCell::new(Box::new(T::load_or_default()));
+                unsafe {
+                    std::mem::transmute_copy((*value.inner.get()).downcast_ref::<T>().unwrap())
+                }
+            }
             None => T::load_or_default(),
         }
     }
@@ -154,21 +210,28 @@ impl Config {
     where
         T: Source + Any + Send + Sync,
     {
-        // TODO:
-        // If cache hit, write cache and set dirty, write back when dropping Cache
-        // instead of writing back here.
-        value.save()?;
         // SAFETY:
         match unsafe { (*self.cache.inner.get()).get_mut(&TypeId::of::<T>()) } {
             Some(cache) => {
-                *cache.inner.write().unwrap() = Box::new(value);
+                cache.inner = UnsafeCell::new(Box::new(value));
+                cache.flags.get_mut().insert(CacheFlags::DIRTY);
             }
             None => {
+                value.save()?;
                 T::retrieve(&self.cache);
             }
         }
         Ok(())
     }
+
+    // /// Flush all the dirty values to the source.
+    // pub fn flush(&self) {
+    //     for value in unsafe { &mut *self.cache.inner.get() }.values_mut() {
+    //         if value.flags.contains(CacheFlags::DIRTY) && value.flags.contains(CacheFlags::VALID) {
+    //             value.write_back();
+    //         }
+    //     }
+    // }
 }
 
 /// This holds a `RwLockReadGuard` of the config value until the end of the scope.
@@ -180,7 +243,7 @@ pub struct ConfigRef<'a, T>
 where
     T: Source + Any,
 {
-    guard: RwLockReadGuard<'a, Box<dyn Any + Send + Sync>>,
+    inner: &'a Box<dyn Any + Send + Sync>,
     _marker: PhantomData<&'a T>,
 }
 
@@ -195,8 +258,8 @@ pub struct ConfigMut<'a, T>
 where
     T: Source + Any,
 {
-    guard: RwLockWriteGuard<'a, Box<dyn Any + Send + Sync>>,
-    dirty: bool,
+    inner: &'a mut Box<dyn Any + Send + Sync>,
+    flags: &'a mut CacheFlags,
     _marker: PhantomData<&'a mut T>,
 }
 
@@ -207,7 +270,7 @@ where
     type Target = T;
 
     fn deref(&self) -> &T {
-        self.guard.downcast_ref().unwrap()
+        self.inner.downcast_ref().unwrap()
     }
 }
 
@@ -218,7 +281,7 @@ where
     type Target = T;
 
     fn deref(&self) -> &T {
-        self.guard.downcast_ref().unwrap()
+        self.inner.downcast_ref().unwrap()
     }
 }
 
@@ -227,25 +290,8 @@ where
     T: Source + Any,
 {
     fn deref_mut(&mut self) -> &mut T {
-        self.dirty = true;
-        self.guard.downcast_mut().unwrap()
-    }
-}
-
-impl<T> Drop for ConfigMut<'_, T>
-where
-    T: Source + Any,
-{
-    fn drop(&mut self) {
-        if self.dirty {
-            if let Err(e) = self.save() {
-                println!(
-                    "Error from encrypt_config: {e}\nThis msg is printed while saving as dropping."
-                );
-                return;
-            }
-            self.dirty = false;
-        }
+        self.flags.insert(CacheFlags::DIRTY);
+        self.inner.downcast_mut().unwrap()
     }
 }
 
@@ -280,15 +326,16 @@ where
 
     fn retrieve(cache: &Cache) -> Self::Ref<'_> {
         ConfigRef {
-            guard: cache.get_or_default::<T>().inner.read().unwrap(),
+            inner: unsafe { &*cache.get_or_default::<T>().inner.get() },
             _marker: PhantomData,
         }
     }
 
     fn retrieve_mut(cache: &Cache) -> Self::Mut<'_> {
+        let value = cache.get_or_default::<T>();
         ConfigMut {
-            guard: cache.get_or_default::<T>().inner.write().unwrap(),
-            dirty: false,
+            inner: unsafe { &mut *value.inner.get() },
+            flags: unsafe { &mut *value.flags.get() },
             _marker: PhantomData,
         }
     }

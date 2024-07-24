@@ -17,36 +17,18 @@ struct SecretConfig {
 #[test]
 fn secret_test() {
     std::fs::remove_file(SecretConfig::path()).ok();
-    let config = Config::default();
     {
-        let secret_config = config.get::<SecretConfig>();
-        assert_eq!(secret_config.value, 0);
+        let cfg = Config::default();
+        let secret = cfg.get::<SecretConfig>();
+        assert_eq!(secret.value, 0);
+        let mut secret = cfg.get_mut::<SecretConfig>();
+        secret.value = 42;
+        assert_eq!(secret.value, 42);
     }
     {
-        let mut secret_config = config.get_mut::<SecretConfig>();
-        secret_config.value = 42;
-        assert_eq!(secret_config.value, 42);
+        let cfg = Config::default();
+        let secret = cfg.get::<SecretConfig>();
+        assert_eq!(secret.value, 42);
     }
-
-    let config = Config::default();
-    {
-        let secret_config = config.get::<SecretConfig>();
-        assert_eq!(secret_config.value, 42);
-    }
-    {
-        let (mut secret,) = config.get_mut_many::<(SecretConfig,)>();
-        secret.value = 0;
-    }
-    {
-        let secret_config = config.get::<SecretConfig>();
-        assert_eq!(secret_config.value, 0);
-    }
-
-    let config = Config::default();
-    {
-        let secret_config = config.get::<SecretConfig>();
-        assert_eq!(secret_config.value, 0);
-    }
-
     std::fs::remove_file(SecretConfig::path()).ok();
 }

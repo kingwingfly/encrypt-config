@@ -1,6 +1,5 @@
 use encrypt_config::{Config, NormalSource, PersistSource, SecretSource};
 use serde::{Deserialize, Serialize};
-use std::sync::OnceLock;
 
 #[derive(Default, NormalSource)]
 struct NormalConfig {
@@ -31,97 +30,58 @@ struct SecretConfig {
     password: String,
 }
 
-fn config() -> &'static Config {
-    static CONFIG: OnceLock<Config> = OnceLock::new();
-    CONFIG.get_or_init(Config::default)
-}
-
 fn main() {
     // clean before test
     let files = vec![PersistConfig::path(), SecretConfig::path()];
     for file in &files {
         std::fs::remove_file(file).ok();
     }
-
-    let cfg = config();
     {
-        let normal_config = cfg.get::<NormalConfig>();
-        assert_eq!(normal_config.count, 0);
-    }
-    {
-        let mut normal_config = cfg.get_mut::<NormalConfig>();
-        normal_config.count = 42;
-        assert_eq!(normal_config.count, 42);
-    }
-    let jh = std::thread::spawn(move || {
-        // work in another thread
-        let mut persist_config = cfg.get_mut::<PersistConfig>();
-        persist_config.name = "Louis".to_string();
-        persist_config.age = 22;
-        // change saved automatically after dropped
-    });
-    {
-        let cfg = config();
-        let mut secret_config = cfg.get_mut::<SecretConfig>();
-        secret_config.password = "123456".to_string();
-    }
-    jh.join().unwrap();
-
-    // Assume this is a new config in the next start
-    let cfg = Config::default();
-
-    // normal config will not be saved
-    assert_eq!(cfg.get::<NormalConfig>().count, 0);
-    // persist config will be saved
-    assert_eq!(cfg.get::<PersistConfig>().name, "Louis");
-    // secret config will be encrypted
-    assert_eq!(cfg.get::<SecretConfig>().password, "123456");
-
-    // The secret config file should not be able to load directly
-    let encrypted_file = std::fs::File::open(SecretConfig::path()).unwrap();
-    assert!(serde_json::from_reader::<_, SecretConfig>(encrypted_file).is_err());
-
-    // You can also save manually
-    let persist_config = cfg.get::<PersistConfig>();
-    persist_config.save().unwrap();
-    // You can also save in this way
-    cfg.save(SecretConfig {
-        password: "123".to_owned(),
-    })
-    .unwrap();
-
-    // Restart again
-    let cfg = Config::default();
-    assert_eq!(cfg.get::<SecretConfig>().password, "123");
-    // You can also get multiple configs at once
-    {
-        let (mut normal, mut persist, mut secret) =
-            cfg.get_mut_many::<(NormalConfig, PersistConfig, SecretConfig)>();
-        normal.count = 1;
-        persist.name = "kingwingfly".to_string();
-        persist.age = 23;
-        secret.password = "password".to_string();
-    }
-    {
-        let (normal, persist, secret) =
-            cfg.get_many::<(NormalConfig, PersistConfig, SecretConfig)>();
-        assert_eq!(normal.count, 1);
-        assert_eq!(persist.name, "kingwingfly");
-        assert_eq!(persist.age, 23);
-        assert_eq!(secret.password, "password");
-    }
-
-    // Restart again
-    let cfg = Config::default();
-    {
-        let (normal, persist, secret) =
-            cfg.get_many::<(NormalConfig, PersistConfig, SecretConfig)>();
+        let cfg = Config::default();
+        let normal = cfg.get::<NormalConfig>();
+        // default value
         assert_eq!(normal.count, 0);
-        assert_eq!(persist.name, "kingwingfly");
-        assert_eq!(persist.age, 23);
-        assert_eq!(secret.password, "password");
+        let mut normal = cfg.get_mut::<NormalConfig>();
+        normal.count = 42;
+        assert_eq!(normal.count, 42);
     }
+    {
+        let cfg = Config::new();
+        let mut persist = cfg.get_mut::<PersistConfig>();
+        persist.name = "Louis".to_string();
+        persist.age = 22;
+        let mut secret = cfg.get_mut::<SecretConfig>();
+        secret.password = "123456".to_string();
+        // Changes will be saved automatically as Config is dropped
+    }
+    {
+        // Assume this is a new config in the next start
+        let cfg = Config::default();
+        // normal config will not be saved
+        assert_eq!(cfg.get::<NormalConfig>().count, 0);
+        // persist config will be saved
+        assert_eq!(cfg.get::<PersistConfig>().name, "Louis");
+        // secret config will be encrypted
+        assert_eq!(cfg.get::<SecretConfig>().password, "123456");
 
+        // The secret config file should not be able to load directly
+        let encrypted_file = std::fs::File::open(SecretConfig::path()).unwrap();
+        assert!(serde_json::from_reader::<_, SecretConfig>(encrypted_file).is_err());
+
+        // You can also save manually, but this will not refresh the config cache
+        let persist = cfg.get::<PersistConfig>();
+        persist.save().unwrap();
+        // Instead, You can save in this way, this will refresh the cache
+        cfg.save(SecretConfig {
+            password: "123".to_owned(),
+        })
+        .unwrap();
+    }
+    {
+        // Restart again
+        let config = Config::default();
+        assert_eq!(config.get::<SecretConfig>().password, "123");
+    }
     // clean after test
     for file in files {
         std::fs::remove_file(file).ok();
