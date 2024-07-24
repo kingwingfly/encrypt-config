@@ -47,6 +47,9 @@ impl Cache {
 }
 
 /// A struct that can be used to **cache** configuration values.
+/// This behaves like a native cache in CPU:
+/// 1. If cache hit, return the cached value when reading, while update the cached value and then write back when writing.
+/// 2. If cache miss, load the cached value from the source to cache when reading, while write and then load when writing.
 pub struct Config {
     cache: Cache,
 }
@@ -173,9 +176,6 @@ where
 
 impl Config {
     /// Create a new [`Config`] cache.
-    /// This behaves like a native cache in CPU:
-    /// 1. If cache hit, return the cached value when reading, while update the cached value and then write back when writing.
-    /// 2. If cache miss, load the cached value from the source to cache when reading, while write and then load when writing.
     ///
     #[cfg_attr(
         feature = "secret",
