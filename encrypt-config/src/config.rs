@@ -60,7 +60,7 @@ pub struct Config {
 }
 
 impl Default for Config {
-    /// Create an empty [`Config`] struct.
+    /// Create an empty [`Config`] cache.
     fn default() -> Self {
         Self {
             cache: Cache::default(),
@@ -249,16 +249,23 @@ where
     }
 }
 
-#[allow(missing_docs, private_bounds, private_interfaces)]
+/// This trait is used to retrieve the config value from the cache.
+#[allow(private_bounds, private_interfaces)]
 pub trait Cacheable<T>
 where
     Self: Any,
 {
+    /// Immutable reference retrieved from the cache.
     type Ref<'a>;
+    /// Mutable reference retrieved from the cache.
     type Mut<'a>;
+    /// Owned value retrieved from the cache.
     type Owned;
+    /// Retrieve the immutable ref from the cache.
     fn retrieve(cache: &Cache) -> Self::Ref<'_>;
+    /// Retrieve the mutable ref from the cache.
     fn retrieve_mut(cache: &Cache) -> Self::Mut<'_>;
+    /// Take the ownership of the value from the cache.
     fn take(cache: &Cache) -> Self::Owned;
 }
 

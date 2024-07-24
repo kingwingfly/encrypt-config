@@ -154,9 +154,8 @@ let cfg = config();
     normal_config.count = 42;
     assert_eq!(normal_config.count, 42);
 }
-let jh = std::thread::spawn(|| {
+let jh = std::thread::spawn(move || {
     // work in another thread
-    let cfg = config();
     let mut persist_config = cfg.get_mut::<PersistConfig>();
     persist_config.name = "Louis".to_string();
     persist_config.age = 22;
@@ -166,29 +165,38 @@ let jh = std::thread::spawn(|| {
     let cfg = config();
     let mut secret_config = cfg.get_mut::<SecretConfig>();
     secret_config.password = "123456".to_string();
-    // change saved automatically after dropped
 }
 jh.join().unwrap();
 
 // Assume this is a new config in the next start
-let config = Config::default();
+let cfg = Config::default();
 
 // normal config will not be saved
-assert_eq!(config.get::<NormalConfig>().count, 0);
+assert_eq!(cfg.get::<NormalConfig>().count, 0);
 // persist config will be saved
-assert_eq!(config.get::<PersistConfig>().name, "Louis");
+assert_eq!(cfg.get::<PersistConfig>().name, "Louis");
 // secret config will be encrypted
-assert_eq!(config.get::<SecretConfig>().password, "123456");
+assert_eq!(cfg.get::<SecretConfig>().password, "123456");
 
 // The secret config file should not be able to load directly
 let encrypted_file = std::fs::File::open(SecretConfig::path()).unwrap();
 assert!(serde_json::from_reader::<_, SecretConfig>(encrypted_file).is_err());
 
 // You can also save manually
-let persist_config = config.get::<PersistConfig>();
+let persist_config = cfg.get::<PersistConfig>();
 persist_config.save().unwrap();
-config.save(SecretConfig { password: "123".to_owned() }).unwrap();
-assert_eq!(config.get::<SecretConfig>().password, "123");
+// You can also save in this way
+cfg.save(SecretConfig {
+    password: "123".to_owned(),
+})
+.unwrap();
+
+// Restart again
+let cfg = Config::default();
+assert_eq!(cfg.get::<SecretConfig>().password, "123");
+// You can also get multiple configs at once
+let (_normal, _persist, _secret) =
+    cfg.get_many::<(NormalConfig, PersistConfig, SecretConfig)>();
 # }
 ```
 
