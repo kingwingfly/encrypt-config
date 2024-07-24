@@ -1,5 +1,5 @@
 //! # Config
-//! This module provides a [`Config`] struct that can be used to store configuration values.
+//! This module provides a [`Config`] struct that can be used to cache configuration values.
 
 use crate::{error::ConfigResult, Source};
 use std::{
@@ -77,7 +77,7 @@ impl Config {
     /// Get an immutable ref from the config.
     /// If the value is not found, it will be created with the default value.
     /// See [`ConfigRef`] for more details.
-    pub fn get<T>(&self) -> ConfigRef<T>
+    pub fn get<T>(&self) -> ConfigRef<'_, T>
     where
         T: Source + Any + Send + Sync,
     {
@@ -87,7 +87,7 @@ impl Config {
     /// Get a mutable ref from the config.
     /// If the value is not found, it will be created with the default value.
     /// See [`ConfigMut`] for more details.
-    pub fn get_mut<T>(&self) -> ConfigMut<T>
+    pub fn get_mut<T>(&self) -> ConfigMut<'_, T>
     where
         T: Source + Any + Send + Sync,
     {
@@ -210,27 +210,34 @@ where
     }
 }
 
-trait Cacheable
+trait Cacheable<T>
 where
-    Self: Source + Any + Sized,
+    Self: Any,
 {
-    fn retrieve(cache: &Cache) -> ConfigRef<'_, Self>;
-    fn retrieve_mut(cache: &Cache) -> ConfigMut<'_, Self>;
-    fn take(cache: &Cache) -> Self;
+    type Ref<'a>;
+    type Mut<'a>;
+    type Owned;
+    fn retrieve(cache: &Cache) -> Self::Ref<'_>;
+    fn retrieve_mut(cache: &Cache) -> Self::Mut<'_>;
+    fn take(cache: &Cache) -> Self::Owned;
 }
 
-impl<T> Cacheable for T
+impl<T> Cacheable<()> for T
 where
     T: Source + Any + Send + Sync,
 {
-    fn retrieve(cache: &Cache) -> ConfigRef<'_, T> {
+    type Ref<'a> = ConfigRef<'a, T>;
+    type Mut<'a> = ConfigMut<'a, T>;
+    type Owned = T;
+
+    fn retrieve(cache: &Cache) -> Self::Ref<'_> {
         ConfigRef {
             guard: cache.get_or_default::<T>().inner.read().unwrap(),
             _marker: PhantomData,
         }
     }
 
-    fn retrieve_mut(cache: &Cache) -> ConfigMut<'_, T> {
+    fn retrieve_mut(cache: &Cache) -> Self::Mut<'_> {
         ConfigMut {
             guard: cache.get_or_default::<T>().inner.write().unwrap(),
             dirty: false,
@@ -238,7 +245,40 @@ where
         }
     }
 
-    fn take(cache: &Cache) -> T {
+    fn take(cache: &Cache) -> Self::Owned {
         cache.take_or_default::<T>()
     }
 }
+
+macro_rules! impl_cacheable {
+    ($($t: ident),+$(,)?) => {
+        impl<$($t,)+> Cacheable<((),)> for ($($t,)+)
+        where
+            $($t: Cacheable<()>,)+
+        {
+            type Ref<'a> = ($(<$t as Cacheable<()>>::Ref<'a>,)+);
+            type Mut<'a> = ($(<$t as Cacheable<()>>::Mut<'a>,)+);
+            type Owned = ($(<$t as Cacheable<()>>::Owned,)+);
+            fn retrieve(cache: &Cache) -> Self::Ref<'_> {
+                ($(<$t as Cacheable<()>>::retrieve(cache),)+)
+            }
+
+            fn retrieve_mut(cache: &Cache) -> Self::Mut<'_> {
+                ($(<$t as Cacheable<()>>::retrieve_mut(cache),)+)
+            }
+
+            fn take(cache: &Cache) -> Self::Owned {
+                ($(<$t as Cacheable<()>>::take(cache),)+)
+            }
+        }
+    };
+}
+
+impl_cacheable!(T1);
+impl_cacheable!(T1, T2);
+impl_cacheable!(T1, T2, T3);
+impl_cacheable!(T1, T2, T3, T4);
+impl_cacheable!(T1, T2, T3, T4, T5);
+impl_cacheable!(T1, T2, T3, T4, T5, T6);
+impl_cacheable!(T1, T2, T3, T4, T5, T6, T7);
+impl_cacheable!(T1, T2, T3, T4, T5, T6, T7, T8);
