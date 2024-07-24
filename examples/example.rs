@@ -94,8 +94,33 @@ fn main() {
     let cfg = Config::default();
     assert_eq!(cfg.get::<SecretConfig>().password, "123");
     // You can also get multiple configs at once
-    let (_normal, _persist, _secret) =
-        cfg.get_many::<(NormalConfig, PersistConfig, SecretConfig)>();
+    {
+        let (mut normal, mut persist, mut secret) =
+            cfg.get_mut_many::<(NormalConfig, PersistConfig, SecretConfig)>();
+        normal.count = 1;
+        persist.name = "kingwingfly".to_string();
+        persist.age = 23;
+        secret.password = "password".to_string();
+    }
+    {
+        let (normal, persist, secret) =
+            cfg.get_many::<(NormalConfig, PersistConfig, SecretConfig)>();
+        assert_eq!(normal.count, 1);
+        assert_eq!(persist.name, "kingwingfly");
+        assert_eq!(persist.age, 23);
+        assert_eq!(secret.password, "password");
+    }
+
+    // Restart again
+    let cfg = Config::default();
+    {
+        let (normal, persist, secret) =
+            cfg.get_many::<(NormalConfig, PersistConfig, SecretConfig)>();
+        assert_eq!(normal.count, 0);
+        assert_eq!(persist.name, "kingwingfly");
+        assert_eq!(persist.age, 23);
+        assert_eq!(secret.password, "password");
+    }
 
     // clean after test
     for file in files {

@@ -194,7 +194,7 @@ cfg.save(SecretConfig {
 // Restart again
 let cfg = Config::default();
 assert_eq!(cfg.get::<SecretConfig>().password, "123");
-// You can also get multiple configs at once
+// You can also get multiple configs at once. Usage see example below.
 let (_normal, _persist, _secret) =
     cfg.get_many::<(NormalConfig, PersistConfig, SecretConfig)>();
 # }
