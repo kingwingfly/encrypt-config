@@ -49,6 +49,8 @@ impl Drop for CacheValue {
 struct Cache {
     inner: UnsafeCell<HashMap<TypeId, CacheValue>>,
 }
+unsafe impl Sync for Cache {}
+unsafe impl Send for Cache {}
 
 impl Cache {
     fn get_or_default<T: Source + Any + Send + Sync>(&self) -> &CacheValue {

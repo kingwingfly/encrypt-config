@@ -15,6 +15,10 @@ Note: In this file, do not use the hard wrap in the middle of a sentence for com
 - totally like CPU cache now
 - save to the source when `Config` cache dropped instead of `ConfigMut`
 
+## [0.4.3] - 2024-07-24
+
+- Fix import documentation version mismatch
+
 ## [0.4.2] - 2024-07-24
 
 - improve doc
