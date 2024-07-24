@@ -200,7 +200,7 @@ let (_normal, _persist, _secret) =
 # }
 ```
 
-_For more examples, please refer to the [Example](https://github.com/kingwingfly/encrypt-config/tree/dev/tests) or [Documentation](https://docs.rs/encrypt_config)_
+_For more examples, please refer to the [tests](https://github.com/kingwingfly/encrypt-config/tree/dev/tests), [Example](https://github.com/kingwingfly/encrypt-config/blob/dev/examples/example.rs) or [Documentation](https://docs.rs/encrypt_config)_
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
