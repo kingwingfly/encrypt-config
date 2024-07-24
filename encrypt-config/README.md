@@ -41,6 +41,7 @@
 <details>
   <summary>Table of Contents</summary>
   <ol>
+    <li><a href="#import">Import</a></li>
     <li>
       <a href="#about-the-project">About The Project</a>
       <ul>
@@ -57,7 +58,19 @@
   </ol>
 </details>
 
+<!-- IMPORT -->
+## Import
+```toml
+[target.'cfg(target_os = "linux")'.dependencies]
+encrypt_config = { version = "0.5.0-alpha1", features = ["full", "linux-secret-service"] }
 
+[target.'cfg(not(target_os = "linux"))'.dependencies]
+encrypt_config = { version = "0.5.0-alpha1", features = ["full"] }
+
+[profile.dev.package.num-bigint-dig]
+opt-level = 3
+```
+**THIS VERSION IS QUIT DANGERIOUS TO USE**
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
@@ -102,17 +115,6 @@ One of `linux-secret-service` and `linux-keyutils` features should be enabled on
 
 <!-- USAGE EXAMPLES -->
 ## Usage
-### Import
-```toml
-[target.'cfg(target_os = "linux")'.dependencies]
-encrypt_config = { version = "0.3", features = ["full", "linux-secret-service"] }
-
-[target.'cfg(not(target_os = "linux"))'.dependencies]
-encrypt_config = { version = "0.3", features = ["full"] }
-
-[profile.dev.package.num-bigint-dig]
-opt-level = 3
-```
 ### Example
 ```rust no_run
 # #[cfg(all(feature = "full", feature = "mock", feature = "default_config_dir"))]
@@ -196,7 +198,8 @@ _For more examples, please refer to the [tests](https://github.com/kingwingfly/e
 <!-- CHANGELOG -->
 ## Changelog
 
-- v0.3.x -> v0.4.x: Cache inside `Config` now behave more like a native cache. Changes will be saved as `ConfigMut` dropped automatically.
+- 0.4.x -> 0.5.x: Cache inside `Config` now behaves **totally** like a native cache. Changes will be saved as `Config` dropped automatically.
+- v0.3.x -> v0.4.x: Cache inside `Config` now behaves more like a native cache. Changes will be saved as `ConfigMut` dropped automatically.
 - v0.2.x -> v0.3.x: Now, multi-config-sources can be saved and loaded through `Config` in one go. But `add_xx_source`s are removed. By the way, one can defined their own sources by implementing `Source` trait while `NormalSource` `PersistSource` `SecretSource` are still provided.
 - v0.1.x -> v0.2.x: A broken change has been made. Heavily refactored with `std::any` and methods from `dependencies injection`.
 
