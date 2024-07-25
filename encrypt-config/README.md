@@ -71,6 +71,9 @@ encrypt_config = { version = "0.5.0-alpha1", features = ["full"] }
 opt-level = 3
 ```
 
+**Caution: This Version is still not safe to use!!!**
+**The bug is: multiple loads from disk may be performed if cache missed**
+
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 

@@ -9,6 +9,13 @@ Note: In this file, do not use the hard wrap in the middle of a sentence for com
 -->
 
 ## [Unreleased]
+## [0.5.0-alpha2] - 2024-07-25
+
+- make Config Send and Sync
+- make the code suitable for testing by loom
+- fix: write while reading
+- fix: limit the number of `ConfigRef` to 32
+
 ## [0.5.0-alpha1] - 2024-07-24
 
 - remove all locks
