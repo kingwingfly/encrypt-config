@@ -143,28 +143,28 @@ impl Config {
         Self::default()
     }
 
-    /// Get an immutable ref ([`ConfigRef`]) from the config.
+    /// Get an immutable ref ([`CfgRef`]) from the config.
     /// If the value was not valid, it would try loading from source, and fell back to the default value.
     ///
-    /// Caution: You can only get up to 32 (1 << 5) immutable refs ([`ConfigRef`]) at the same time.
+    /// Caution: You can only get up to 32 (1 << 5) immutable refs ([`CfgRef`]) at the same time.
     ///
     /// If the value was marked as writing, it would panic like `RefCell`.
-    /// See [`ConfigRef`] for more details.
-    pub fn get<T>(&self) -> ConfigRef<'_, T>
+    /// See [`CfgRef`] for more details.
+    pub fn get<T>(&self) -> CfgRef<'_, T>
     where
         T: Source + Any + Send + Sync,
     {
         T::retrieve(&self.cache)
     }
 
-    /// Get a mutable ref ([`ConfigMut`]) from the config.
+    /// Get a mutable ref ([`CfgMut`]) from the config.
     /// If the value was not valid, it would try loading from source, and fell back to the default value.
     ///
-    /// Caution: You can only get up to 1 mutable ref ([`ConfigMut`]) at the same time.
+    /// Caution: You can only get up to 1 mutable ref ([`CfgMut`]) at the same time.
     ///
     /// If the value was marked as writing, it would panic like `RefCell`.
-    /// See [`ConfigMut`] for more details.
-    pub fn get_mut<T>(&self) -> ConfigMut<'_, T>
+    /// See [`CfgMut`] for more details.
+    pub fn get_mut<T>(&self) -> CfgMut<'_, T>
     where
         T: Source + Any + Send + Sync,
     {
@@ -186,10 +186,10 @@ impl Config {
     ///
     /// T: (T1, T2, T3,)
     ///
-    /// Caution: You can only get up to 32 (1 << 5) immutable refs ([`ConfigRef`]) at the same time.
+    /// Caution: You can only get up to 32 (1 << 5) immutable refs ([`CfgRef`]) at the same time.
     ///
     /// If the value was not valid, it would try loading from source, and fell back to the default value.
-    /// See [`ConfigRef`] for more details.
+    /// See [`CfgRef`] for more details.
     pub fn get_many<T>(&self) -> <T as Cacheable<((),)>>::Ref<'_>
     where
         T: Cacheable<((),)> + Any + Send + Sync,
@@ -201,10 +201,10 @@ impl Config {
     ///
     /// T: (T1, T2, T3,)
     ///
-    /// Caution: You can only get up to 1 mutable ref ([`ConfigMut`]) at the same time.
+    /// Caution: You can only get up to 1 mutable ref ([`CfgMut`]) at the same time.
     ///
     /// If the value was not valid, it would try loading from source, and fell back to the default value.
-    /// See [`ConfigMut`] for more details.
+    /// See [`CfgMut`] for more details.
     pub fn get_mut_many<T>(&self) -> <T as Cacheable<((),)>>::Mut<'_>
     where
         T: Cacheable<((),)> + Any + Send + Sync,
@@ -256,8 +256,8 @@ impl Config {
 }
 
 /// # Panic
-/// - If you already held a [`ConfigMut`], [`Config::get()`] will panic.
-pub struct ConfigRef<'a, T>
+/// - If you already held a [`CfgMut`], [`Config::get()`] will panic.
+pub struct CfgRef<'a, T>
 where
     T: Source + Any,
 {
@@ -266,7 +266,7 @@ where
     _marker: PhantomData<&'a T>,
 }
 
-impl<T> Deref for ConfigRef<'_, T>
+impl<T> Deref for CfgRef<'_, T>
 where
     T: Source + Any,
 {
@@ -277,7 +277,7 @@ where
     }
 }
 
-impl<T> Drop for ConfigRef<'_, T>
+impl<T> Drop for CfgRef<'_, T>
 where
     T: Source + Any,
 {
@@ -288,8 +288,8 @@ where
 }
 
 /// # Panic
-/// - If you already held a [`ConfigRef`] or [`ConfigMut`], [`Config::get_mut()`] will panic.
-pub struct ConfigMut<'a, T>
+/// - If you already held a [`CfgRef`] or [`CfgMut`], [`Config::get_mut()`] will panic.
+pub struct CfgMut<'a, T>
 where
     T: Source + Any,
 {
@@ -298,7 +298,7 @@ where
     _marker: PhantomData<&'a mut T>,
 }
 
-impl<T> Deref for ConfigMut<'_, T>
+impl<T> Deref for CfgMut<'_, T>
 where
     T: Source + Any,
 {
@@ -309,7 +309,7 @@ where
     }
 }
 
-impl<T> DerefMut for ConfigMut<'_, T>
+impl<T> DerefMut for CfgMut<'_, T>
 where
     T: Source + Any,
 {
@@ -320,7 +320,7 @@ where
     }
 }
 
-impl<T> Drop for ConfigMut<'_, T>
+impl<T> Drop for CfgMut<'_, T>
 where
     T: Source + Any,
 {
@@ -355,8 +355,8 @@ impl<T> Cacheable<()> for T
 where
     T: Source + Any + Send + Sync,
 {
-    type Ref<'a> = ConfigRef<'a, T>;
-    type Mut<'a> = ConfigMut<'a, T>;
+    type Ref<'a> = CfgRef<'a, T>;
+    type Mut<'a> = CfgMut<'a, T>;
     type Owned = T;
 
     fn retrieve(cache: &Cache) -> Self::Ref<'_> {
@@ -370,7 +370,7 @@ where
         if prev >= 0b1111_1000 {
             panic!("Too many refs for <{}>.", type_name::<T>());
         }
-        ConfigRef {
+        CfgRef {
             inner: value.inner.with(|ptr| unsafe { &*ptr }),
             flags: &value.flags,
             _marker: PhantomData,
@@ -390,7 +390,7 @@ where
         value
             .flags
             .fetch_or(CacheFlags::Writing as u8, Ordering::Release);
-        ConfigMut {
+        CfgMut {
             inner: value.inner.with_mut(|ptr| unsafe { &mut *ptr }),
             flags: &value.flags,
             _marker: PhantomData,
