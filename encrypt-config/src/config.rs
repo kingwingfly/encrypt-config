@@ -45,7 +45,7 @@ impl CacheValue {
 impl Drop for CacheValue {
     fn drop(&mut self) {
         let mask = (CacheFlags::Dirty | CacheFlags::Valid).bits();
-        let flag = *self.flags.get_mut();
+        let flag = self.flags.load(Ordering::Acquire);
         if flag & mask == mask {
             self.write_back();
         }

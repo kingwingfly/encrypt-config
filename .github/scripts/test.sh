@@ -17,6 +17,8 @@ statements=(
     "cargo test --no-default-features --features full,mock"
     "cargo test --no-default-features --features full,mock,default_config_dir"
 
+    "RUSTFLAGS=\"--cfg loom\" cargo test --no-default-features --features full,mock --release"
+
     "cargo run --example example --no-default-features --features full,mock"
     "cargo run --example example --no-default-features --features full,mock,default_config_dir"
 
