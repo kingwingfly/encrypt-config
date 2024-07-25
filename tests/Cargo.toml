@@ -5,7 +5,7 @@ edition.workspace = true
 publish = false
 
 [dev-dependencies]
-encrypt_config = { workspace = true, features = ["derive"] }
+encrypt_config = { workspace = true }
 serde = "1"
 const-str = "0.5.7"
 loom = { workspace = true }
