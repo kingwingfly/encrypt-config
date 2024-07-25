@@ -1,6 +1,7 @@
+#![cfg(loom)]
 use encrypt_config::{Config, NormalSource};
 use loom::sync::Arc;
-use loom::thread::{self, JoinHandle};
+use loom::thread;
 
 #[derive(Default, NormalSource)]
 struct Normal {
@@ -31,8 +32,21 @@ fn write_while_writing() {
 fn read_while_reading() {
     loom::model(|| {
         let cfg = Config::default();
-        let _normal_ref1 = cfg.get::<Normal>();
-        let _normal_ref2 = cfg.get::<Normal>();
+        let _ = (0..8)
+            .map(|_| {
+                cfg.get::<Normal>();
+            })
+            .collect::<Vec<_>>();
+    })
+}
+
+#[test]
+#[should_panic]
+fn too_many_readings() {
+    loom::model(|| {
+        let cfg = Config::default();
+        let normals = (0..=32).map(|_| cfg.get::<Normal>()).collect::<Vec<_>>();
+        assert_eq!(normals.len(), 33);
     })
 }
 
@@ -48,7 +62,7 @@ fn multi_thread() {
                     assert_eq!(normal_ref.value, 0);
                 })
             })
-            .collect::<Vec<JoinHandle<_>>>();
+            .collect::<Vec<_>>();
         for jh in jhs {
             jh.join().unwrap();
         }

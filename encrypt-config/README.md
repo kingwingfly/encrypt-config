@@ -93,7 +93,7 @@ This crate also has some optional features:
 - `mock`: If enabled, you can use the mock for testing, which will not use the OS' secret manager.
 - `default_config_dir`: If enabled, the default config dir will be used. Implemented through [dirs](https://crates.io/crates/dirs).
 
-Moreover, as development progresses, a memory cache design is added for persistent data access speeding up. This leads this crate actually behaves more like bevy_ecs's resource system (or dependencies injecion with only args retrieving implemented).
+Moreover, as development progresses, a memory cache design is added for persistent data access speeding up. This leads this crate actually behaving more like bevy_ecs's resource system (or dependencies injecion with only args retrieving implemented).
 
 ### Causion
 

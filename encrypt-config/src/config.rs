@@ -8,17 +8,14 @@ use loom::{
     cell::UnsafeCell,
     sync::atomic::{AtomicU8, Ordering},
 };
+#[cfg(not(loom))]
+use std::sync::atomic::{AtomicU8, Ordering};
 use std::{
     any::type_name,
     any::{Any, TypeId},
     collections::HashMap,
     marker::PhantomData,
     ops::{Deref, DerefMut},
-};
-#[cfg(not(loom))]
-use std::{
-    cell::UnsafeCell,
-    sync::atomic::{AtomicU8, Ordering},
 };
 
 #[bitflags]
@@ -36,18 +33,18 @@ struct CacheValue {
     #[allow(clippy::type_complexity)]
     write_back_fn: Box<dyn Fn(&Box<dyn Any + Send + Sync>)>,
     // 0b00000000
-    //          valid
-    //         dirty
-    //        writing
-    //   ^^^^^
-    //   ref_count<5bit>
+    //          ^valid
+    //         ^dirty
+    //        ^writing
+    //   ^^^^^ref_count<5bit>
     flags: AtomicU8,
 }
 
 impl CacheValue {
     fn write_back(&mut self) {
-        let inner = unsafe { &*self.inner.get() };
-        (self.write_back_fn)(inner);
+        self.inner.with(|ptr| unsafe {
+            (self.write_back_fn)(&*ptr);
+        });
         self.flags
             .fetch_and((!CacheFlags::Dirty).bits(), Ordering::Release); // set_dirty after can not be reordered
     }
@@ -71,52 +68,50 @@ unsafe impl Sync for Cache {}
 unsafe impl Send for Cache {}
 
 impl Cache {
-    /// Get the value ref from cache or load it from source. No flag check happens.
+    /// Get the value ref from cache or load it from source.
     fn get_or_default<T: Source + Any + Send + Sync>(&self) -> &CacheValue {
-        // SAFETY:
-        match unsafe { &*self.inner.get() }.get(&TypeId::of::<T>()) {
-            // valid
-            Some(value) if value.flags.load(Ordering::Acquire) & CacheFlags::Valid as u8 != 0 => {
-                value
-            }
-            // invalid: reload and set valid
-            Some(value) => {
-                unsafe {
-                    value.inner.get().write(Box::new(T::load_or_default()));
-                }
-                value
-                    .flags
-                    .fetch_or(CacheFlags::Valid as u8, Ordering::Release);
-                value
-            }
-            // SAFETY: This is safe since cache is missing
-            // cache miss: load and set valid
-            None => unsafe { &mut *self.inner.get() }
+        self.inner.with_mut(|ptr| {
+            unsafe { &mut *ptr }
                 .entry(TypeId::of::<T>())
+                .and_modify(|value| {
+                    // invalid: reload and set valid
+                    if value.flags.load(Ordering::Acquire) & CacheFlags::Valid as u8 == 0 {
+                        value.inner.with_mut(|ptr| unsafe {
+                            ptr.write(Box::new(T::load_or_default()));
+                        });
+                        value
+                            .flags
+                            .fetch_or(CacheFlags::Valid as u8, Ordering::Release);
+                    }
+                })
+                // cache miss: load
                 .or_insert(CacheValue {
                     inner: UnsafeCell::new(Box::new(T::load_or_default())),
                     write_back_fn: Box::new(|this: &Box<dyn Any + Send + Sync>| {
                         this.downcast_ref::<T>().unwrap().save().ok();
                     }),
                     flags: AtomicU8::new(CacheFlags::Valid as u8),
-                }),
-        }
+                })
+        })
     }
 
     fn take_or_default<T: Source + Any + Send + Sync>(&self) -> T {
         // SAFETY:
-        let map = unsafe { &mut *self.inner.get() };
-        match map.remove(&TypeId::of::<T>()) {
-            Some(value) if value.flags.load(Ordering::Acquire) & CacheFlags::Valid as u8 != 0 => {
-                if value.flags.load(Ordering::Acquire) & CacheFlags::Writing as u8 != 0 {
-                    panic!("Cannot take a value <{}> while writing.", type_name::<T>());
+        self.inner.with_mut(
+            |ptr| match unsafe { &mut *ptr }.remove(&TypeId::of::<T>()) {
+                Some(value)
+                    if value.flags.load(Ordering::Acquire) & CacheFlags::Valid as u8 != 0 =>
+                {
+                    if value.flags.load(Ordering::Acquire) & CacheFlags::Writing as u8 != 0 {
+                        panic!("Cannot take a value <{}> while writing.", type_name::<T>());
+                    }
+                    value.inner.with(|ptr| unsafe {
+                        std::mem::transmute_copy((*ptr).downcast_ref::<T>().unwrap())
+                    })
                 }
-                unsafe {
-                    std::mem::transmute_copy((*value.inner.get()).downcast_ref::<T>().unwrap())
-                }
-            }
-            _ => T::load_or_default(),
-        }
+                _ => T::load_or_default(),
+            },
+        )
     }
 }
 
@@ -240,22 +235,23 @@ impl Config {
     where
         T: Source + Any + Send + Sync,
     {
-        // SAFETY:
-        match unsafe { (*self.cache.inner.get()).get(&TypeId::of::<T>()) } {
-            Some(cache) => {
-                unsafe {
-                    cache.inner.get().write(Box::new(value));
+        self.cache.inner.with(|ptr| -> ConfigResult<()> {
+            match unsafe { &*ptr }.get(&TypeId::of::<T>()) {
+                Some(cache) => {
+                    cache
+                        .inner
+                        .with_mut(|ptr| unsafe { ptr.write(Box::new(value)) });
+                    cache
+                        .flags
+                        .fetch_or(CacheFlags::Dirty as u8, Ordering::Release);
                 }
-                cache
-                    .flags
-                    .fetch_or(CacheFlags::Dirty as u8, Ordering::Release);
+                None => {
+                    value.save()?;
+                    T::retrieve(&self.cache);
+                }
             }
-            None => {
-                value.save()?;
-                T::retrieve(&self.cache);
-            }
-        }
-        Ok(())
+            Ok(())
+        })
     }
 }
 
@@ -368,13 +364,14 @@ where
         if value.flags.load(Ordering::Acquire) & CacheFlags::Writing as u8 != 0 {
             panic!("Cannot get a &<{}> while writing.", type_name::<T>());
         }
-        #[cfg(loom)]
-        assert!(value.flags.load(Ordering::SeqCst) & (CacheFlags::Writing as u8) == 0);
-        value
+        let prev = value
             .flags
             .fetch_add(CacheFlags::Reading as u8, Ordering::Release);
+        if prev >= 0b1111_1000 {
+            panic!("Too many refs for <{}>.", type_name::<T>());
+        }
         ConfigRef {
-            inner: unsafe { &*cache.get_or_default::<T>().inner.get() },
+            inner: value.inner.with(|ptr| unsafe { &*ptr }),
             flags: &value.flags,
             _marker: PhantomData,
         }
@@ -387,15 +384,14 @@ where
             panic!("Cannot get a &mut <{}> while writing.", type_name::<T>());
         }
         if flag >= (CacheFlags::Reading as u8) {
+            // 0b0000_1000
             panic!("Cannot get a &mut <{}> while reading.", type_name::<T>());
         }
-        #[cfg(loom)]
-        assert!(value.flags.load(Ordering::Relaxed) < (CacheFlags::Writing as u8));
         value
             .flags
             .fetch_or(CacheFlags::Writing as u8, Ordering::Release);
         ConfigMut {
-            inner: unsafe { &mut *value.inner.get() },
+            inner: value.inner.with_mut(|ptr| unsafe { &mut *ptr }),
             flags: &value.flags,
             _marker: PhantomData,
         }
@@ -439,3 +435,22 @@ impl_cacheable!(T1, T2, T3, T4, T5);
 impl_cacheable!(T1, T2, T3, T4, T5, T6);
 impl_cacheable!(T1, T2, T3, T4, T5, T6, T7);
 impl_cacheable!(T1, T2, T3, T4, T5, T6, T7, T8);
+
+#[cfg(not(loom))]
+#[derive(Debug, Default)]
+struct UnsafeCell<T>(std::cell::UnsafeCell<T>);
+
+#[cfg(not(loom))]
+impl<T> UnsafeCell<T> {
+    pub(crate) fn new(data: T) -> UnsafeCell<T> {
+        UnsafeCell(std::cell::UnsafeCell::new(data))
+    }
+
+    pub(crate) fn with<R>(&self, f: impl FnOnce(*const T) -> R) -> R {
+        f(self.0.get())
+    }
+
+    pub(crate) fn with_mut<R>(&self, f: impl FnOnce(*mut T) -> R) -> R {
+        f(self.0.get())
+    }
+}
