@@ -19,11 +19,15 @@ fn secret_test() {
     std::fs::remove_file(SecretConfig::path()).ok();
     {
         let cfg = Config::default();
-        let secret = cfg.get::<SecretConfig>();
-        assert_eq!(secret.value, 0);
-        let mut secret = cfg.get_mut::<SecretConfig>();
-        secret.value = 42;
-        assert_eq!(secret.value, 42);
+        {
+            let secret = cfg.get::<SecretConfig>();
+            assert_eq!(secret.value, 0);
+        }
+        {
+            let mut secret = cfg.get_mut::<SecretConfig>();
+            secret.value = 42;
+            assert_eq!(secret.value, 42);
+        }
     }
     {
         let cfg = Config::default();

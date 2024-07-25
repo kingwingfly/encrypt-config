@@ -38,31 +38,36 @@ fn main() {
     }
     {
         let cfg = Config::default();
-        let normal = cfg.get::<NormalConfig>();
-        // default value
-        assert_eq!(normal.count, 0);
-        let mut normal = cfg.get_mut::<NormalConfig>();
-        normal.count = 42;
-        assert_eq!(normal.count, 42);
-    }
-    {
-        let cfg = Config::new();
-        let mut persist = cfg.get_mut::<PersistConfig>();
-        persist.name = "Louis".to_string();
-        persist.age = 22;
-        let mut secret = cfg.get_mut::<SecretConfig>();
-        secret.password = "123456".to_string();
-        // Changes will be saved automatically as Config is dropped
+        {
+            let normal = cfg.get::<NormalConfig>();
+            // default value
+            assert_eq!(normal.count, 0);
+        }
+        {
+            let mut normal = cfg.get_mut::<NormalConfig>();
+            normal.count = 42;
+            assert_eq!(normal.count, 42);
+        }
+        {
+            let mut persist = cfg.get_mut::<PersistConfig>();
+            persist.name = "Louis".to_string();
+            persist.age = 22;
+            let mut secret = cfg.get_mut::<SecretConfig>();
+            secret.password = "123456".to_string();
+        }
+        // Changes will be saved automatically as Config dropped
     }
     {
         // Assume this is a new config in the next start
         let cfg = Config::default();
-        // normal config will not be saved
-        assert_eq!(cfg.get::<NormalConfig>().count, 0);
-        // persist config will be saved
-        assert_eq!(cfg.get::<PersistConfig>().name, "Louis");
-        // secret config will be encrypted
-        assert_eq!(cfg.get::<SecretConfig>().password, "123456");
+        {
+            // normal config will not be saved
+            assert_eq!(cfg.get::<NormalConfig>().count, 0);
+            // persist config will be saved
+            assert_eq!(cfg.get::<PersistConfig>().name, "Louis");
+            // secret config will be encrypted
+            assert_eq!(cfg.get::<SecretConfig>().password, "123456");
+        }
 
         // The secret config file should not be able to load directly
         let encrypted_file = std::fs::File::open(SecretConfig::path()).unwrap();
@@ -71,7 +76,7 @@ fn main() {
         // You can also save manually, but this will not refresh the Config cache
         let persist = cfg.get::<PersistConfig>();
         persist.save().unwrap();
-        // Instead, You can save in this way, this will refresh the cache
+        // Instead, You'd better save in this way, this will refresh the cache
         cfg.save(SecretConfig {
             password: "123".to_owned(),
         })

@@ -11,9 +11,10 @@ fn normal_test() {
     {
         let normal = cfg.get::<NormalConfig>();
         assert_eq!(normal.value, 0);
-        let (normal, _) = cfg.get_many::<(NormalConfig,)>();
+        let (normal,) = cfg.get_many::<(NormalConfig,)>();
         assert_eq!(normal.value, 0);
-
+    }
+    {
         let mut normal = cfg.get_mut::<NormalConfig>();
         normal.value = 42;
         assert_eq!(normal.value, 42);

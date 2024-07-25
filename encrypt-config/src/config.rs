@@ -4,17 +4,21 @@
 use crate::{error::ConfigResult, source::Source};
 use enumflags2::bitflags;
 #[cfg(loom)]
-use loom::sync::atomic::AtomicU8;
-#[cfg(not(loom))]
-use std::sync::atomic::AtomicU8;
+use loom::{
+    cell::UnsafeCell,
+    sync::atomic::{AtomicU8, Ordering},
+};
 use std::{
     any::type_name,
     any::{Any, TypeId},
-    cell::UnsafeCell,
     collections::HashMap,
     marker::PhantomData,
     ops::{Deref, DerefMut},
-    sync::atomic::Ordering,
+};
+#[cfg(not(loom))]
+use std::{
+    cell::UnsafeCell,
+    sync::atomic::{AtomicU8, Ordering},
 };
 
 #[bitflags]
@@ -24,12 +28,19 @@ enum CacheFlags {
     Valid = 1,
     Dirty = 1 << 1,
     Writing = 1 << 2,
+    Reading = 1 << 3,
 }
 
 struct CacheValue {
     inner: UnsafeCell<Box<dyn Any + Send + Sync>>,
     #[allow(clippy::type_complexity)]
     write_back_fn: Box<dyn Fn(&Box<dyn Any + Send + Sync>)>,
+    // 0b00000000
+    //          valid
+    //         dirty
+    //        writing
+    //   ^^^^^
+    //   ref_count<5bit>
     flags: AtomicU8,
 }
 
@@ -60,15 +71,15 @@ unsafe impl Sync for Cache {}
 unsafe impl Send for Cache {}
 
 impl Cache {
+    /// Get the value ref from cache or load it from source. No flag check happens.
     fn get_or_default<T: Source + Any + Send + Sync>(&self) -> &CacheValue {
         // SAFETY:
         match unsafe { &*self.inner.get() }.get(&TypeId::of::<T>()) {
+            // valid
             Some(value) if value.flags.load(Ordering::Acquire) & CacheFlags::Valid as u8 != 0 => {
-                if value.flags.load(Ordering::Acquire) & CacheFlags::Writing as u8 != 0 {
-                    panic!("Cannot get a value <{}> while writing.", type_name::<T>());
-                }
                 value
             }
+            // invalid: reload and set valid
             Some(value) => {
                 unsafe {
                     value.inner.get().write(Box::new(T::load_or_default()));
@@ -79,6 +90,7 @@ impl Cache {
                 value
             }
             // SAFETY: This is safe since cache is missing
+            // cache miss: load and set valid
             None => unsafe { &mut *self.inner.get() }
                 .entry(TypeId::of::<T>())
                 .or_insert(CacheValue {
@@ -136,8 +148,10 @@ impl Config {
         Self::default()
     }
 
-    /// Get an immutable ref from the config.
+    /// Get an immutable ref ([`ConfigRef`]) from the config.
     /// If the value was not valid, it would try loading from source, and fell back to the default value.
+    ///
+    /// Caution: You can only get up to 32 (1 << 5) immutable refs ([`ConfigRef`]) at the same time.
     ///
     /// If the value was marked as writing, it would panic like `RefCell`.
     /// See [`ConfigRef`] for more details.
@@ -148,8 +162,10 @@ impl Config {
         T::retrieve(&self.cache)
     }
 
-    /// Get a mutable ref from the config.
+    /// Get a mutable ref ([`ConfigMut`]) from the config.
     /// If the value was not valid, it would try loading from source, and fell back to the default value.
+    ///
+    /// Caution: You can only get up to 1 mutable ref ([`ConfigMut`]) at the same time.
     ///
     /// If the value was marked as writing, it would panic like `RefCell`.
     /// See [`ConfigMut`] for more details.
@@ -175,6 +191,8 @@ impl Config {
     ///
     /// T: (T1, T2, T3,)
     ///
+    /// Caution: You can only get up to 32 (1 << 5) immutable refs ([`ConfigRef`]) at the same time.
+    ///
     /// If the value was not valid, it would try loading from source, and fell back to the default value.
     /// See [`ConfigRef`] for more details.
     pub fn get_many<T>(&self) -> <T as Cacheable<((),)>>::Ref<'_>
@@ -187,6 +205,8 @@ impl Config {
     /// Get many mutable refs from the config.
     ///
     /// T: (T1, T2, T3,)
+    ///
+    /// Caution: You can only get up to 1 mutable ref ([`ConfigMut`]) at the same time.
     ///
     /// If the value was not valid, it would try loading from source, and fell back to the default value.
     /// See [`ConfigMut`] for more details.
@@ -246,18 +266,8 @@ where
     T: Source + Any,
 {
     inner: &'a Box<dyn Any + Send + Sync>,
-    _marker: PhantomData<&'a T>,
-}
-
-/// # Panic
-/// - If you already held a [`ConfigRef`] or [`ConfigMut`], [`Config::get_mut()`] will panic.
-pub struct ConfigMut<'a, T>
-where
-    T: Source + Any,
-{
-    inner: &'a mut Box<dyn Any + Send + Sync>,
     flags: &'a AtomicU8,
-    _marker: PhantomData<&'a mut T>,
+    _marker: PhantomData<&'a T>,
 }
 
 impl<T> Deref for ConfigRef<'_, T>
@@ -269,6 +279,27 @@ where
     fn deref(&self) -> &T {
         self.inner.downcast_ref().unwrap()
     }
+}
+
+impl<T> Drop for ConfigRef<'_, T>
+where
+    T: Source + Any,
+{
+    fn drop(&mut self) {
+        self.flags
+            .fetch_sub(CacheFlags::Reading as u8, Ordering::Release);
+    }
+}
+
+/// # Panic
+/// - If you already held a [`ConfigRef`] or [`ConfigMut`], [`Config::get_mut()`] will panic.
+pub struct ConfigMut<'a, T>
+where
+    T: Source + Any,
+{
+    inner: &'a mut Box<dyn Any + Send + Sync>,
+    flags: &'a AtomicU8,
+    _marker: PhantomData<&'a mut T>,
 }
 
 impl<T> Deref for ConfigMut<'_, T>
@@ -333,14 +364,33 @@ where
     type Owned = T;
 
     fn retrieve(cache: &Cache) -> Self::Ref<'_> {
+        let value = cache.get_or_default::<T>();
+        if value.flags.load(Ordering::Acquire) & CacheFlags::Writing as u8 != 0 {
+            panic!("Cannot get a &<{}> while writing.", type_name::<T>());
+        }
+        #[cfg(loom)]
+        assert!(value.flags.load(Ordering::SeqCst) & (CacheFlags::Writing as u8) == 0);
+        value
+            .flags
+            .fetch_add(CacheFlags::Reading as u8, Ordering::Release);
         ConfigRef {
             inner: unsafe { &*cache.get_or_default::<T>().inner.get() },
+            flags: &value.flags,
             _marker: PhantomData,
         }
     }
 
     fn retrieve_mut(cache: &Cache) -> Self::Mut<'_> {
         let value = cache.get_or_default::<T>();
+        let flag = value.flags.load(Ordering::Acquire);
+        if flag & CacheFlags::Writing as u8 != 0 {
+            panic!("Cannot get a &mut <{}> while writing.", type_name::<T>());
+        }
+        if flag >= (CacheFlags::Reading as u8) {
+            panic!("Cannot get a &mut <{}> while reading.", type_name::<T>());
+        }
+        #[cfg(loom)]
+        assert!(value.flags.load(Ordering::Relaxed) < (CacheFlags::Writing as u8));
         value
             .flags
             .fetch_or(CacheFlags::Writing as u8, Ordering::Release);

@@ -17,6 +17,7 @@ encrypt_config_derive = { path = "encrypt-config-derive", default-features = fal
 keyring = { version = "2.3", default-features = false }
 bitflags = { version = "2.6.0" }
 enumflags2 = { version = "0.7.10" }
+loom = "0.7"
 
 [profile.dev.package.num-bigint-dig]
 opt-level = 3

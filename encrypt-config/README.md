@@ -70,9 +70,6 @@ encrypt_config = { version = "0.5.0-alpha1", features = ["full"] }
 [profile.dev.package.num-bigint-dig]
 opt-level = 3
 ```
-**THIS VERSION IS QUITE DANGERIOUS TO USE SINCE IT'S ACTUALLY NOT THREAD SAFE**
-**THIS VERSION IS QUITE DANGERIOUS TO USE SINCE IT'S ACTUALLY NOT THREAD SAFE**
-**THIS VERSION IS QUITE DANGERIOUS TO USE SINCE IT'S ACTUALLY NOT THREAD SAFE**
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
@@ -95,7 +92,8 @@ This crate also has some optional features:
 - `secret`: If enabled, you can use the [`PersistSource`] and the [`SecretSource`] trait.
 - `mock`: If enabled, you can use the mock for testing, which will not use the OS' secret manager.
 - `default_config_dir`: If enabled, the default config dir will be used. Implemented through [dirs](https://crates.io/crates/dirs).
-- `protobuf`: If enabled, protobuf will be used instead of json for better performance. (WIP)
+
+Moreover, as development progresses, a memory cache design is added for persistent data access speeding up. This leads this crate actually behaves more like bevy_ecs's resource system (or dependencies injecion with only args retrieving implemented).
 
 ### Causion
 
@@ -145,31 +143,36 @@ struct SecretConfig {
 
 {
     let cfg = Config::default();
-    let normal = cfg.get::<NormalConfig>();
-    // default value
-    assert_eq!(normal.count, 0);
-    let mut normal = cfg.get_mut::<NormalConfig>();
-    normal.count = 42;
-    assert_eq!(normal.count, 42);
-}
-{
-    let cfg = Config::new();
-    let mut persist = cfg.get_mut::<PersistConfig>();
-    persist.name = "Louis".to_string();
-    persist.age = 22;
-    let mut secret = cfg.get_mut::<SecretConfig>();
-    secret.password = "123456".to_string();
-    // Changes will be saved automatically as Config is dropped
+    {
+        let normal = cfg.get::<NormalConfig>();
+        // default value
+        assert_eq!(normal.count, 0);
+    }
+    {
+        let mut normal = cfg.get_mut::<NormalConfig>();
+        normal.count = 42;
+        assert_eq!(normal.count, 42);
+    }
+    {
+        let mut persist = cfg.get_mut::<PersistConfig>();
+        persist.name = "Louis".to_string();
+        persist.age = 22;
+        let mut secret = cfg.get_mut::<SecretConfig>();
+        secret.password = "123456".to_string();
+    }
+    // Changes will be saved automatically as Config dropped
 }
 {
     // Assume this is a new config in the next start
     let cfg = Config::default();
-    // normal config will not be saved
-    assert_eq!(cfg.get::<NormalConfig>().count, 0);
-    // persist config will be saved
-    assert_eq!(cfg.get::<PersistConfig>().name, "Louis");
-    // secret config will be encrypted
-    assert_eq!(cfg.get::<SecretConfig>().password, "123456");
+    {
+        // normal config will not be saved
+        assert_eq!(cfg.get::<NormalConfig>().count, 0);
+        // persist config will be saved
+        assert_eq!(cfg.get::<PersistConfig>().name, "Louis");
+        // secret config will be encrypted
+        assert_eq!(cfg.get::<SecretConfig>().password, "123456");
+    }
 
     // The secret config file should not be able to load directly
     let encrypted_file = std::fs::File::open(SecretConfig::path()).unwrap();
@@ -178,7 +181,7 @@ struct SecretConfig {
     // You can also save manually, but this will not refresh the Config cache
     let persist = cfg.get::<PersistConfig>();
     persist.save().unwrap();
-    // Instead, You can save in this way, this will refresh the cache
+    // Instead, You'd better save in this way, this will refresh the cache
     cfg.save(SecretConfig {
         password: "123".to_owned(),
     })

@@ -16,11 +16,15 @@ fn persist_test() {
     std::fs::remove_file(PersistConfig::path()).ok();
     {
         let cfg = Config::default();
-        let persist = cfg.get::<PersistConfig>();
-        assert_eq!(persist.value, 0);
-        let mut persist = cfg.get_mut::<PersistConfig>();
-        persist.value = 42;
-        assert_eq!(persist.value, 42);
+        {
+            let persist = cfg.get::<PersistConfig>();
+            assert_eq!(persist.value, 0);
+        }
+        {
+            let mut persist = cfg.get_mut::<PersistConfig>();
+            persist.value = 42;
+            assert_eq!(persist.value, 42);
+        }
     }
     {
         let cfg = Config::default();
