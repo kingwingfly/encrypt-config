@@ -42,3 +42,30 @@ fn write_while_reading() {
     let _normal_ref = cfg.get::<NormalConfig>();
     let _normal_mut = cfg.get_mut::<NormalConfig>();
 }
+
+macro_rules! many_normal {
+    ($($t: ident),+) => {
+        $(
+        #[derive(Default, NormalSource)]
+        struct $t {
+            value: i32,
+        }
+        )+
+    };
+}
+
+many_normal!(N1, N2, N3, N4, N5, N6, N7, N8);
+
+#[test]
+fn many_normal_test() {
+    let cfg = Config::default();
+    let (n1, n2, n3, n4, n5, n6, n7, n8) = cfg.get_many::<(N1, N2, N3, N4, N5, N6, N7, N8)>();
+    assert_eq!(n1.value, 0);
+    assert_eq!(n2.value, 0);
+    assert_eq!(n3.value, 0);
+    assert_eq!(n4.value, 0);
+    assert_eq!(n5.value, 0);
+    assert_eq!(n6.value, 0);
+    assert_eq!(n7.value, 0);
+    assert_eq!(n8.value, 0);
+}

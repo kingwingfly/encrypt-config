@@ -405,23 +405,23 @@ where
 macro_rules! impl_cacheable {
     ($($t: ident),+$(,)?) => {
         #[allow(private_bounds, private_interfaces)]
-        impl<$($t,)+> Cacheable<((),)> for ($($t,)+)
+        impl<$($t),+> Cacheable<((),)> for ($($t),+,)
         where
             $($t: Cacheable<()>,)+
         {
-            type Ref<'a> = ($(<$t as Cacheable<()>>::Ref<'a>,)+);
-            type Mut<'a> = ($(<$t as Cacheable<()>>::Mut<'a>,)+);
-            type Owned = ($(<$t as Cacheable<()>>::Owned,)+);
+            type Ref<'a> = ($(<$t as Cacheable<()>>::Ref<'a>),+,);
+            type Mut<'a> = ($(<$t as Cacheable<()>>::Mut<'a>),+,);
+            type Owned = ($(<$t as Cacheable<()>>::Owned),+,);
             fn retrieve(cache: &Cache) -> Self::Ref<'_> {
-                ($(<$t as Cacheable<()>>::retrieve(cache),)+)
+                ($(<$t as Cacheable<()>>::retrieve(cache)),+,)
             }
 
             fn retrieve_mut(cache: &Cache) -> Self::Mut<'_> {
-                ($(<$t as Cacheable<()>>::retrieve_mut(cache),)+)
+                ($(<$t as Cacheable<()>>::retrieve_mut(cache)),+,)
             }
 
             fn take(cache: &Cache) -> Self::Owned {
-                ($(<$t as Cacheable<()>>::take(cache),)+)
+                ($(<$t as Cacheable<()>>::take(cache)),+,)
             }
         }
     };
