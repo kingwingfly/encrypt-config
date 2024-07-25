@@ -3,8 +3,6 @@
 #[cfg(feature = "secret")]
 use crate::encrypt_utils::Encrypter;
 use crate::error::ConfigResult;
-#[cfg(feature = "derive")]
-pub use encrypt_config_derive::*;
 #[cfg(feature = "persist")]
 use serde::{de::DeserializeOwned, Serialize};
 #[cfg(feature = "persist")]

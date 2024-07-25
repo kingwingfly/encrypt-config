@@ -20,7 +20,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1" }
 rsa = { version = "0.9.6", features = ["serde"], optional = true }
 rand = { version = "0.8.5", optional = true }
-bitflags = { workspace = true }
+enumflags2 = { workspace = true }
 dirs = { version = "5.0.1", optional = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
@@ -41,6 +41,9 @@ keyring = { workspace = true, optional = true, features = ["platform-openbsd"] }
 [target.'cfg(target_os = "windows")'.dependencies]
 keyring = { workspace = true, optional = true, features = ["platform-windows"] }
 
+[target.'cfg(loom)'.dependencies]
+loom = "0.7"
+
 [features]
 default = []
 full = ["persist", "secret", "derive"]
@@ -54,6 +57,7 @@ secret = [
 persist = ["encrypt_config_derive?/persist"]
 derive = ["dep:encrypt_config_derive"]
 default_config_dir = ["dep:dirs", "encrypt_config_derive?/default_config_dir"]
+sync = []
 mock = []
 linux-secret-service = ["keyring?/linux-secret-service"]
 linux-keyutils = ["keyring?/linux-keyutils"]

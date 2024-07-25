@@ -10,7 +10,7 @@ documentation.workspace = true
 keywords = ["config", "encryption"]
 
 [package.metadata.docs.rs]
-features = ["full", "mock"]
+features = ["full"]
 rustdoc-args = ["--cfg", "docsrs"]
 
 [lib]
@@ -31,4 +31,3 @@ full = ["persist", "secret", "encrypt_config/full"]
 persist = ["encrypt_config/persist"]
 secret = ["persist", "encrypt_config/secret"]
 default_config_dir = ["encrypt_config/default_config_dir"]
-mock = ["encrypt_config/mock"]

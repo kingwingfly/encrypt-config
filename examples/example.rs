@@ -68,7 +68,7 @@ fn main() {
         let encrypted_file = std::fs::File::open(SecretConfig::path()).unwrap();
         assert!(serde_json::from_reader::<_, SecretConfig>(encrypted_file).is_err());
 
-        // You can also save manually, but this will not refresh the config cache
+        // You can also save manually, but this will not refresh the Config cache
         let persist = cfg.get::<PersistConfig>();
         persist.save().unwrap();
         // Instead, You can save in this way, this will refresh the cache

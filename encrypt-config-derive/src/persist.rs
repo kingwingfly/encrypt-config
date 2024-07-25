@@ -42,14 +42,14 @@ pub(crate) fn derive_persist_source(input: TokenStream) -> TokenStream {
 
     #[cfg(not(feature = "default_config_dir"))]
     let persist_source_impl = quote! {
-        impl #impl_generics ::encrypt_config::PersistSource for #name #ty_generics #where_clause {
+        impl #impl_generics ::encrypt_config::source::PersistSource for #name #ty_generics #where_clause {
             const PATH: &'static str = #path_or_name;
         }
     };
 
     #[cfg(feature = "default_config_dir")]
     let persist_source_impl = quote! {
-        impl #impl_generics ::encrypt_config::PersistSource for #name #ty_generics #where_clause {
+        impl #impl_generics ::encrypt_config::source::PersistSource for #name #ty_generics #where_clause {
             const NAME: &'static str = #path_or_name;
         }
     };
@@ -57,7 +57,7 @@ pub(crate) fn derive_persist_source(input: TokenStream) -> TokenStream {
     let expanded = quote! {
         #persist_source_impl
 
-        impl #impl_generics ::encrypt_config::Source for #name #ty_generics #where_clause {
+        impl #impl_generics ::encrypt_config::source::Source for #name #ty_generics #where_clause {
             fn load() -> ::encrypt_config::error::ConfigResult<Self>
             where
                 Self: Sized,

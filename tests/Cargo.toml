@@ -12,20 +12,27 @@ const-str = "0.5.7"
 [[test]]
 name = "normal_test"
 path = "normal_test.rs"
+required-features = ["derive"]
 
 [[test]]
 name = "persist_test"
 path = "persist_test.rs"
-required-features = ["persist"]
+required-features = ["derive", "persist"]
 
 [[test]]
 name = "secret_test"
 path = "secret_test.rs"
-required-features = ["secret", "mock"]
+required-features = ["derive", "secret", "mock"]
+
+[[test]]
+name = "concurrent_test"
+path = "concurrent_test.rs"
+required-features = ["derive", "secret", "mock"]
 
 [features]
 default = []
-persist = ["encrypt_config/persist"]
 secret = ["persist", "encrypt_config/secret"]
+persist = ["encrypt_config/persist"]
+derive = ["encrypt_config/derive"]
 mock = ["encrypt_config/mock"]
 default_config_dir = ["encrypt_config/default_config_dir"]

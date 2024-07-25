@@ -52,4 +52,6 @@ pub mod error;
 pub mod source;
 
 pub use config::Config;
+#[cfg(feature = "derive")]
+pub use encrypt_config_derive::*;
 pub use source::*;

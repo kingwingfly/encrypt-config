@@ -1,7 +1,12 @@
 //! # Config
 //! This module provides a [`Config`] struct that can be used to cache configuration values.
 
-use crate::{error::ConfigResult, Source};
+use crate::{error::ConfigResult, source::Source};
+use enumflags2::bitflags;
+#[cfg(loom)]
+use loom::sync::atomic::AtomicU8;
+#[cfg(not(loom))]
+use std::sync::atomic::AtomicU8;
 use std::{
     any::type_name,
     any::{Any, TypeId},
@@ -9,37 +14,39 @@ use std::{
     collections::HashMap,
     marker::PhantomData,
     ops::{Deref, DerefMut},
+    sync::atomic::Ordering,
 };
 
-bitflags::bitflags! {
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    struct CacheFlags: u8 {
-        const VALID = 1;
-        const DIRTY = 1 << 1;
-        const WRITING = 1 << 2;
-    }
+#[bitflags]
+#[repr(u8)]
+#[derive(Copy, Clone, Debug, PartialEq)]
+enum CacheFlags {
+    Valid = 1,
+    Dirty = 1 << 1,
+    Writing = 1 << 2,
 }
 
 struct CacheValue {
     inner: UnsafeCell<Box<dyn Any + Send + Sync>>,
     #[allow(clippy::type_complexity)]
     write_back_fn: Box<dyn Fn(&Box<dyn Any + Send + Sync>)>,
-    flags: UnsafeCell<CacheFlags>,
+    flags: AtomicU8,
 }
 
 impl CacheValue {
     fn write_back(&mut self) {
         let inner = unsafe { &*self.inner.get() };
         (self.write_back_fn)(inner);
-        self.flags.get_mut().remove(CacheFlags::DIRTY);
+        self.flags
+            .fetch_and((!CacheFlags::Dirty).bits(), Ordering::Release); // set_dirty after can not be reordered
     }
 }
 
 impl Drop for CacheValue {
     fn drop(&mut self) {
-        if self.flags.get_mut().contains(CacheFlags::DIRTY)
-            & self.flags.get_mut().contains(CacheFlags::VALID)
-        {
+        let mask = (CacheFlags::Dirty | CacheFlags::Valid).bits();
+        let flag = *self.flags.get_mut();
+        if flag & mask == mask {
             self.write_back();
         }
     }
@@ -55,16 +62,20 @@ unsafe impl Send for Cache {}
 impl Cache {
     fn get_or_default<T: Source + Any + Send + Sync>(&self) -> &CacheValue {
         // SAFETY:
-        match unsafe { &mut *self.inner.get() }.get_mut(&TypeId::of::<T>()) {
-            Some(value) if unsafe { &*value.flags.get() }.contains(CacheFlags::VALID) => {
-                if value.flags.get_mut().contains(CacheFlags::WRITING) {
+        match unsafe { &*self.inner.get() }.get(&TypeId::of::<T>()) {
+            Some(value) if value.flags.load(Ordering::Acquire) & CacheFlags::Valid as u8 != 0 => {
+                if value.flags.load(Ordering::Acquire) & CacheFlags::Writing as u8 != 0 {
                     panic!("Cannot get a value <{}> while writing.", type_name::<T>());
                 }
                 value
             }
             Some(value) => {
-                value.inner = UnsafeCell::new(Box::new(T::load_or_default()));
-                value.flags.get_mut().insert(CacheFlags::VALID);
+                unsafe {
+                    value.inner.get().write(Box::new(T::load_or_default()));
+                }
+                value
+                    .flags
+                    .fetch_or(CacheFlags::Valid as u8, Ordering::Release);
                 value
             }
             // SAFETY: This is safe since cache is missing
@@ -75,7 +86,7 @@ impl Cache {
                     write_back_fn: Box::new(|this: &Box<dyn Any + Send + Sync>| {
                         this.downcast_ref::<T>().unwrap().save().ok();
                     }),
-                    flags: UnsafeCell::new(CacheFlags::VALID),
+                    flags: AtomicU8::new(CacheFlags::Valid as u8),
                 }),
         }
     }
@@ -84,22 +95,15 @@ impl Cache {
         // SAFETY:
         let map = unsafe { &mut *self.inner.get() };
         match map.remove(&TypeId::of::<T>()) {
-            Some(mut value) if unsafe { &*value.flags.get() }.contains(CacheFlags::VALID) => {
-                if value.flags.get_mut().contains(CacheFlags::WRITING) {
+            Some(value) if value.flags.load(Ordering::Acquire) & CacheFlags::Valid as u8 != 0 => {
+                if value.flags.load(Ordering::Acquire) & CacheFlags::Writing as u8 != 0 {
                     panic!("Cannot take a value <{}> while writing.", type_name::<T>());
                 }
-                value.flags.get_mut().remove(CacheFlags::VALID);
                 unsafe {
                     std::mem::transmute_copy((*value.inner.get()).downcast_ref::<T>().unwrap())
                 }
             }
-            Some(mut value) => {
-                value.inner = UnsafeCell::new(Box::new(T::load_or_default()));
-                unsafe {
-                    std::mem::transmute_copy((*value.inner.get()).downcast_ref::<T>().unwrap())
-                }
-            }
-            None => T::load_or_default(),
+            _ => T::load_or_default(),
         }
     }
 }
@@ -217,10 +221,14 @@ impl Config {
         T: Source + Any + Send + Sync,
     {
         // SAFETY:
-        match unsafe { (*self.cache.inner.get()).get_mut(&TypeId::of::<T>()) } {
+        match unsafe { (*self.cache.inner.get()).get(&TypeId::of::<T>()) } {
             Some(cache) => {
-                cache.inner = UnsafeCell::new(Box::new(value));
-                cache.flags.get_mut().insert(CacheFlags::DIRTY);
+                unsafe {
+                    cache.inner.get().write(Box::new(value));
+                }
+                cache
+                    .flags
+                    .fetch_or(CacheFlags::Dirty as u8, Ordering::Release);
             }
             None => {
                 value.save()?;
@@ -248,7 +256,7 @@ where
     T: Source + Any,
 {
     inner: &'a mut Box<dyn Any + Send + Sync>,
-    flags: &'a mut CacheFlags,
+    flags: &'a AtomicU8,
     _marker: PhantomData<&'a mut T>,
 }
 
@@ -279,8 +287,19 @@ where
     T: Source + Any,
 {
     fn deref_mut(&mut self) -> &mut T {
-        self.flags.insert(CacheFlags::DIRTY);
+        self.flags
+            .fetch_or(CacheFlags::Dirty as u8, Ordering::Release);
         self.inner.downcast_mut().unwrap()
+    }
+}
+
+impl<T> Drop for ConfigMut<'_, T>
+where
+    T: Source + Any,
+{
+    fn drop(&mut self) {
+        self.flags
+            .fetch_and((!CacheFlags::Writing).bits(), Ordering::Release);
     }
 }
 
@@ -322,9 +341,12 @@ where
 
     fn retrieve_mut(cache: &Cache) -> Self::Mut<'_> {
         let value = cache.get_or_default::<T>();
+        value
+            .flags
+            .fetch_or(CacheFlags::Writing as u8, Ordering::Release);
         ConfigMut {
             inner: unsafe { &mut *value.inner.get() },
-            flags: unsafe { &mut *value.flags.get() },
+            flags: &value.flags,
             _marker: PhantomData,
         }
     }
