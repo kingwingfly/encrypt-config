@@ -72,7 +72,8 @@ opt-level = 3
 ```
 
 **Caution: This Version is still not safe to use!!!**
-**The bug is: multiple loads from disk may be performed if cache missed**
+
+**The bug is: multiple loads from disk may be performed if cache missed if multiple threads**
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
