@@ -15,7 +15,6 @@ documentation = "https://docs.rs/encrypt-config"
 encrypt_config = { path = "encrypt-config", default-features = false }
 encrypt_config_derive = { path = "encrypt-config-derive", default-features = false, version = "0.5.0-alpha2" }
 keyring = { version = "2.3", default-features = false }
-bitflags = { version = "2.6.0" }
 enumflags2 = { version = "0.7.10" }
 loom = { version = "0.7", features = ["checkpoint"] }
 
