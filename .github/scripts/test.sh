@@ -9,7 +9,7 @@ statements=(
     "cargo clippy --no-default-features --features persist -- -D warnings"
     "cargo clippy --no-default-features --features secret,mock -- -D warnings"
     "cargo clippy --no-default-features --features secret,mock,derive -- -D warnings"
-    "cargo clippy --no-default-features --features full -- -D warnings"
+    "cargo clippy --no-default-features --features full,mock -- -D warnings"
 
     "cargo test --no-default-features --features derive"
     "cargo test --no-default-features --features derive,persist"
