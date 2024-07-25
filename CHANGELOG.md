@@ -9,6 +9,10 @@ Note: In this file, do not use the hard wrap in the middle of a sentence for com
 -->
 
 ## [Unreleased]
+### [0.5.0-alpha2] - 2024-07-26
+
+- simplify the name of `ConfigRef` and `ConfigMut` to `CfgRef` and `CfgMut`
+
 ## [0.5.0-alpha2] - 2024-07-25
 
 - make Config Send and Sync
