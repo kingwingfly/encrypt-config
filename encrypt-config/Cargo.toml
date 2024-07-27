@@ -13,6 +13,9 @@ keywords = ["config", "encryption"]
 features = ["full", "mock"]
 rustdoc-args = ["--cfg", "docsrs"]
 
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(loom)'] }
+
 [dependencies]
 encrypt_config_derive = { workspace = true, optional = true }
 snafu = { version = "0.7.5" }
