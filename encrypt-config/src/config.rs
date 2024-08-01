@@ -12,9 +12,11 @@ type Cache = rom_cache::Cache<1, 8>;
 /// 2. If cache miss, reading loads the value from the source to cache, while writing saves the value to source then loads it to cache.
 /// 3. All caches values dirty will be written back when Config dropped.
 ///
-/// You are safe to get **at most 8** different types' refs and mut_refs at the same time in all threads,
+/// **At most 8** different types in all threads are safe to be managed
 /// due to the default cache capacity.
-/// Or panic occurs with errors like `Busy`.
+/// And each type can be ref **up to 63** times or mut ref **up to 1** time at the same time.
+/// Or panic occurs with errors like `Busy` or `Locked`.
+///
 #[cfg_attr(
     feature = "secret",
     doc = "To avoid entering the password during testing, you can enable `mock` feature. This can always return the **same** Encrypter during **each** test."
@@ -57,7 +59,7 @@ impl Config {
     ///
     /// Caution: You can only get up to 1 mutable ref ([`CfgMut`]) of each type at the same time.
     ///
-    /// If the value was marked as writing, it would panic like `RefCell`.
+    /// If the value was marked as reading or writing, it would panic like `RefCell`.
     /// See [`CfgMut`] for more details.
     pub fn get_mut<T>(&self) -> <T as Cacheable<()>>::Mut<'_>
     where
