@@ -8,7 +8,6 @@ publish = false
 encrypt_config = { workspace = true }
 serde = "1"
 const-str = "0.5.7"
-loom = { workspace = true }
 
 [[test]]
 name = "normal_test"
@@ -24,11 +23,6 @@ required-features = ["derive", "persist"]
 name = "secret_test"
 path = "secret_test.rs"
 required-features = ["derive", "secret", "mock"]
-
-[[test]]
-name = "concurrent_test"
-path = "concurrent_test.rs"
-required-features = ["derive"]
 
 [features]
 default = []

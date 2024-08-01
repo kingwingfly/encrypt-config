@@ -2,38 +2,19 @@
 
 #[cfg(feature = "secret")]
 use crate::encrypt_utils::Encrypter;
-use crate::error::ConfigResult;
 #[cfg(feature = "persist")]
 use serde::{de::DeserializeOwned, Serialize};
 #[cfg(feature = "persist")]
 use std::path::PathBuf;
 
-/// Source trait for the encrypt-config crate. You can impl your logic for loading and saving the configuration here.
-/// Moreover, you can use derive macros to implement [`NormalSource`], [`PersistSource`], and [`SecretSource`] in this crate.
-/// In provided ways, `Source` will be implemented when deriving, so that derived structs can be accepted by the [`Config`](crate::Config) struct.
-pub trait Source: Default {
-    /// Try to load the source, return error if failed.
-    fn load() -> ConfigResult<Self>
-    where
-        Self: Sized;
-    /// Save logic for the source.
-    fn save(&self) -> ConfigResult<()>;
-
-    /// Load logic for the source, return default value if failed.
-    fn load_or_default() -> Self
-    where
-        Self: Sized + Default,
-    {
-        Self::load().unwrap_or_default()
-    }
-}
+pub use rom_cache::Cacheable;
 
 /// Normal source trait.
-pub trait NormalSource: Source {}
+pub trait NormalSource: rom_cache::Cacheable {}
 
 /// Persist source trait.
 #[cfg(feature = "persist")]
-pub trait PersistSource: Source + Serialize + DeserializeOwned {
+pub trait PersistSource: rom_cache::Cacheable + Serialize + DeserializeOwned {
     /// Path for the persist source.
     #[cfg(not(feature = "default_config_dir"))]
     const PATH: &'static str;
@@ -55,17 +36,17 @@ pub trait PersistSource: Source + Serialize + DeserializeOwned {
         }
     }
     /// Load the persist source.
-    fn load() -> ConfigResult<Self> {
+    fn load() -> std::io::Result<Self> {
         let path = Self::path();
         let file = std::fs::File::open(path)?;
         Ok(serde_json::from_reader(file)?)
     }
     /// Save the persist source.
-    fn save(&self) -> ConfigResult<()> {
+    fn store(&self) -> std::io::Result<()> {
         let path = Self::path();
         let parent = path.parent().unwrap();
-        std::fs::create_dir_all(parent).unwrap();
-        let file = std::fs::File::create(path).unwrap();
+        std::fs::create_dir_all(parent)?;
+        let file = std::fs::File::create(path)?;
         serde_json::to_writer(file, self)?;
         Ok(())
     }
@@ -73,7 +54,7 @@ pub trait PersistSource: Source + Serialize + DeserializeOwned {
 
 /// Secret source trait.
 #[cfg(feature = "secret")]
-pub trait SecretSource: Source + Serialize + DeserializeOwned {
+pub trait SecretSource: rom_cache::Cacheable + Serialize + DeserializeOwned {
     /// Path for the persist source.
     #[cfg(not(feature = "default_config_dir"))]
     const PATH: &'static str;
@@ -97,23 +78,29 @@ pub trait SecretSource: Source + Serialize + DeserializeOwned {
         }
     }
     /// Load the secret source.
-    fn load() -> ConfigResult<Self> {
+    fn load() -> ::std::io::Result<Self> {
         let path = Self::path();
-        let encrypter = Encrypter::new(Self::KEYRING_ENTRY)?;
+        let encrypter =
+            Encrypter::new(Self::KEYRING_ENTRY).map_err(|_| std::io::ErrorKind::InvalidData)?;
         let file = std::fs::File::open(path)?;
         let encrypted: Vec<u8> = std::io::Read::bytes(file).collect::<Result<_, _>>()?;
-        encrypter.decrypt(&encrypted)
+        encrypter
+            .decrypt(&encrypted)
+            .map_err(|_| std::io::ErrorKind::InvalidData.into())
     }
     /// Save the secret source.
-    fn save(&self) -> ConfigResult<()> {
+    fn store(&self) -> ::std::io::Result<()> {
         use std::io::Write as _;
 
         let path = Self::path();
         let parent = path.parent().unwrap();
-        std::fs::create_dir_all(parent).unwrap();
-        let encrypter = Encrypter::new(Self::KEYRING_ENTRY)?;
-        let encrypted = encrypter.encrypt(self)?;
-        let mut file = std::fs::File::create(path).unwrap();
+        std::fs::create_dir_all(parent)?;
+        let encrypter =
+            Encrypter::new(Self::KEYRING_ENTRY).map_err(|_| std::io::ErrorKind::InvalidData)?;
+        let encrypted = encrypter
+            .encrypt(self)
+            .map_err(|_| std::io::ErrorKind::InvalidData)?;
+        let mut file = std::fs::File::create(path)?;
         file.write_all(&encrypted)?;
         file.flush()?;
         Ok(())

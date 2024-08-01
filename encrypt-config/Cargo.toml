@@ -13,9 +13,6 @@ keywords = ["config", "encryption"]
 features = ["full", "mock"]
 rustdoc-args = ["--cfg", "docsrs"]
 
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(loom)'] }
-
 [dependencies]
 encrypt_config_derive = { workspace = true, optional = true }
 snafu = { version = "0.7.5" }
@@ -23,11 +20,8 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1" }
 rsa = { version = "0.9.6", features = ["serde"], optional = true }
 rand = { version = "0.8.5", optional = true }
-enumflags2 = { workspace = true }
 dirs = { version = "5.0.1", optional = true }
-
-[target.'cfg(loom)'.dependencies]
-loom = { workspace = true }
+rom_cache = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 keyring = { workspace = true, optional = true, features = ["platform-macos"] }

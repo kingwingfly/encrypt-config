@@ -9,8 +9,13 @@ Note: In this file, do not use the hard wrap in the middle of a sentence for com
 -->
 
 ## [Unreleased]
-### [0.5.0-alpha2] - 2024-07-26
+## [0.5.0] - 2024-08-02
 
+- use `rom_cache` crate for config caching
+
+## [0.5.0-alpha3] - 2024-07-26
+
+- dropped this version
 - simplify the name of `ConfigRef` and `ConfigMut` to `CfgRef` and `CfgMut`
 
 ## [0.5.0-alpha2] - 2024-07-25

@@ -57,16 +57,24 @@ pub(crate) fn derive_persist_source(input: TokenStream) -> TokenStream {
     let expanded = quote! {
         #persist_source_impl
 
-        impl #impl_generics ::encrypt_config::source::Source for #name #ty_generics #where_clause {
-            fn load() -> ::encrypt_config::error::ConfigResult<Self>
+        impl #impl_generics ::encrypt_config::source::Cacheable for #name #ty_generics #where_clause {
+            fn load() -> ::std::io::Result<Self>
             where
                 Self: Sized,
             {
                 <Self as ::encrypt_config::PersistSource>::load()
             }
 
-            fn save(&self) -> ::encrypt_config::error::ConfigResult<()> {
-                <Self as ::encrypt_config::PersistSource>::save(self)
+            fn store(&self) -> ::std::io::Result<()> {
+                <Self as ::encrypt_config::PersistSource>::store(self)
+            }
+
+            fn as_any(&self) -> &dyn ::std::any::Any {
+                self
+            }
+
+            fn as_any_mut(&mut self) -> &mut dyn ::std::any::Any {
+                self
             }
         }
     };

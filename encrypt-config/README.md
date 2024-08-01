@@ -71,7 +71,10 @@ encrypt_config = { version = "0.5.0-alpha1", features = ["full"] }
 opt-level = 3
 ```
 
-**Caution: This Version is still not safe to use!!!**
+**Caution: This version bases on `rom_cache` crate, and the cache size is fixed for easy using.**
+
+**So, too heavy workload will certainly lead to panic. See [`Config`] for detailes.**
+
 
 **The bug is: multiple loads from disk may be performed if cache missed if multiple threads**
 
@@ -97,7 +100,9 @@ This crate also has some optional features:
 - `mock`: If enabled, you can use the mock for testing, which will not use the OS' secret manager.
 - `default_config_dir`: If enabled, the default config dir will be used. Implemented through [dirs](https://crates.io/crates/dirs).
 
-Moreover, as development progresses, a memory cache design is added for persistent data access speeding up. This leads this crate actually behaving more like bevy_ecs's resource system (or dependencies injecion with only args retrieving implemented).
+Moreover, as development progresses, a memory cache design is added for persistent data access speeding up.
+This leads this crate actually behaving more like bevy_ecs's resource system (or dependencies injecion with only args retrieving implemented).
+The cache is released as an independent crate [rom_cache](https://crates.io/crates/rom_cache).
 
 ### Causion
 
@@ -181,20 +186,6 @@ struct SecretConfig {
     // The secret config file should not be able to load directly
     let encrypted_file = std::fs::File::open(SecretConfig::path()).unwrap();
     assert!(serde_json::from_reader::<_, SecretConfig>(encrypted_file).is_err());
-
-    // You can also save manually, but this will not refresh the Config cache
-    let persist = cfg.get::<PersistConfig>();
-    persist.save().unwrap();
-    // Instead, You'd better save in this way, this will refresh the cache
-    cfg.save(SecretConfig {
-        password: "123".to_owned(),
-    })
-    .unwrap();
-}
-{
-    // Restart again
-    let config = Config::default();
-    assert_eq!(config.get::<SecretConfig>().password, "123");
 }
 # }
 ```

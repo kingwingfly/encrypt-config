@@ -10,16 +10,24 @@ pub(crate) fn derive_normal_source(input: TokenStream) -> TokenStream {
     let expanded = quote! {
         impl #impl_generics ::encrypt_config::source::NormalSource for #name #ty_generics #where_clause { }
 
-        impl #impl_generics ::encrypt_config::source::Source for #name #ty_generics #where_clause {
-            fn load() -> ::encrypt_config::error::ConfigResult<Self>
+        impl #impl_generics ::encrypt_config::source::Cacheable for #name #ty_generics #where_clause {
+            fn load() -> ::std::io::Result<Self>
             where
                 Self: Sized,
             {
                 Ok(Self::default())
             }
 
-            fn save(&self) -> ::encrypt_config::error::ConfigResult<()> {
+            fn store(&self) -> ::std::io::Result<()> {
                 Ok(())
+            }
+
+            fn as_any(&self) -> &dyn ::std::any::Any {
+                self
+            }
+
+            fn as_any_mut(&mut self) -> &mut dyn ::std::any::Any {
+                self
             }
         }
     };

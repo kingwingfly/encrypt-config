@@ -72,20 +72,6 @@ fn main() {
         // The secret config file should not be able to load directly
         let encrypted_file = std::fs::File::open(SecretConfig::path()).unwrap();
         assert!(serde_json::from_reader::<_, SecretConfig>(encrypted_file).is_err());
-
-        // You can also save manually, but this will not refresh the Config cache
-        let persist = cfg.get::<PersistConfig>();
-        persist.save().unwrap();
-        // Instead, You'd better save in this way, this will refresh the cache
-        cfg.save(SecretConfig {
-            password: "123".to_owned(),
-        })
-        .unwrap();
-    }
-    {
-        // Restart again
-        let config = Config::default();
-        assert_eq!(config.get::<SecretConfig>().password, "123");
     }
     // clean after test
     for file in files {
