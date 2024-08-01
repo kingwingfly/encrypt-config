@@ -9,6 +9,10 @@ Note: In this file, do not use the hard wrap in the middle of a sentence for com
 -->
 
 ## [Unreleased]
+## [0.5.1] - 2024-08-02
+
+- update doc
+
 ## [0.5.0] - 2024-08-02
 
 - use `rom_cache` crate for config caching

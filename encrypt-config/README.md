@@ -75,9 +75,6 @@ opt-level = 3
 
 **So, too heavy workload will certainly lead to panic. See [`Config`] for detailes.**
 
-
-**The bug is: multiple loads from disk may be performed if cache missed if multiple threads**
-
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
