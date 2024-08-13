@@ -62,7 +62,7 @@
 ## Import
 ```toml
 [dependencies]
-encrypt_config = { version = "1.0.0", features = ["full"] }
+encrypt_config = { version = "1.0", features = ["full"] }
 
 [profile.dev.package.num-bigint-dig]
 opt-level = 3
