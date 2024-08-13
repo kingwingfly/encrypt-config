@@ -68,10 +68,6 @@ encrypt_config = { version = "1.0.0", features = ["full"] }
 opt-level = 3
 ```
 
-**Caution: This version bases on `rom_cache` crate, and the cache size is fixed for easy using.**
-
-**So, too heavy workload will certainly lead to panic. See [`Config`] for detailes.**
-
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
@@ -101,8 +97,6 @@ The cache is released as an independent crate [rom_cache](https://crates.io/crat
 The `Config` in this crate is a wrapper of `rom_cache::Cache`, only if the config is modified and marked dirty, it will be persisted to the storage.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 ### Built With
 

@@ -10,8 +10,7 @@ use std::any::Any;
 /// 2. If cache miss, reading loads the value from the source to cache, while writing saves the value to source then loads it to cache.
 /// 3. All caches values dirty will be written back when Config dropped.
 ///
-/// **At most N** different types in all threads are safe to be managed
-/// due to the default cache capacity.
+/// **At most N** different types in all threads are safe to be managed due to the default cache capacity.
 /// And each type can be ref **up to 63** times or mut ref **up to 1** time at the same time.
 /// Or panic occurs with errors like `Busy` or `Locked`.
 ///
@@ -70,8 +69,6 @@ impl<const N: usize> Config<N> {
     ///
     /// T: (T1, T2, T3,)
     ///
-    /// Caution: You can only get up to 32 (1 << 5) immutable refs ([`CfgRef`]) at the same time.
-    ///
     /// If the value was not valid, it would try loading from source, and fell back to the default value.
     /// See [`CfgRef`] for more details.
     pub fn get_many<T>(&self) -> <T as Cacheable<((),)>>::Ref<'_>
@@ -84,8 +81,6 @@ impl<const N: usize> Config<N> {
     /// Get many mutable refs from the config.
     ///
     /// T: (T1, T2, T3,)
-    ///
-    /// Caution: You can only get up to 1 mutable ref ([`CfgMut`]) at the same time.
     ///
     /// If the value was not valid, it would try loading from source, and fell back to the default value.
     /// See [`CfgMut`] for more details.

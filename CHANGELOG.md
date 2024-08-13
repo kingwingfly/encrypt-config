@@ -9,6 +9,10 @@ Note: In this file, do not use the hard wrap in the middle of a sentence for com
 -->
 
 ## [Unreleased]
+## [1.0.2] - 2024-08-13
+
+- doc
+
 ## [1.0.1] - 2024-08-13
 
 - update keyring to 3.0, removing linux only features
