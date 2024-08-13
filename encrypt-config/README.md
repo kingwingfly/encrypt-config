@@ -136,8 +136,8 @@ struct SecretConfig {
 }
 
 {
-    // Here we have 3 kinds of config, so N is 3
-    let cfg: Config<3> = Config::default();
+    // Here we have 2 kinds of config at the same time at most, so N is 2
+    let cfg: Config<2> = Config::default();
     {
         let normal = cfg.get::<NormalConfig>();
         // default value
@@ -159,7 +159,8 @@ struct SecretConfig {
 }
 {
     // Assume this is a new config in the next start
-    let cfg: Config<3> = Config::default();
+    // Here we have 1 kinds of config at the same time at most, so N is 1
+    let cfg: Config<1> = Config::default();
     {
         // normal config will not be saved
         assert_eq!(cfg.get::<NormalConfig>().count, 0);

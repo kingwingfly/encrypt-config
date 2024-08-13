@@ -12,8 +12,7 @@ use std::any::Any;
 ///
 /// **At most N** different types in all threads are safe to be managed due to the default cache capacity.
 /// And each type can be ref **up to 63** times or mut ref **up to 1** time at the same time.
-/// Or panic occurs with errors like `Busy` or `Locked`.
-///
+/// Or invalid borrow may happen.
 #[cfg_attr(
     feature = "secret",
     doc = "To avoid entering the password during testing, you can enable `mock` feature. This can always return the **same** Encrypter during **each** test."
