@@ -98,6 +98,8 @@ Moreover, as development progresses, a memory cache design is added for persiste
 This leads this crate actually behaving more like bevy_ecs's resource system (or dependencies injecion with only args retrieving implemented).
 The cache is released as an independent crate [rom_cache](https://crates.io/crates/rom_cache).
 
+The `Config` in this crate is a wrapper of `rom_cache::Cache`, only if the config is modified and marked dirty, it will be persisted to the storage.
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
@@ -140,7 +142,8 @@ struct SecretConfig {
 }
 
 {
-    let cfg = Config::default();
+    // Here we have 3 kinds of config, so N is 3
+    let cfg: Config<3> = Config::default();
     {
         let normal = cfg.get::<NormalConfig>();
         // default value
@@ -162,7 +165,7 @@ struct SecretConfig {
 }
 {
     // Assume this is a new config in the next start
-    let cfg = Config::default();
+    let cfg: Config<3> = Config::default();
     {
         // normal config will not be saved
         assert_eq!(cfg.get::<NormalConfig>().count, 0);
@@ -186,7 +189,7 @@ _For more examples, please refer to the [tests](https://github.com/kingwingfly/e
 
 <!-- CHANGELOG -->
 ## Changelog
-- 0.5.x -> 1.0.x: no feature difference between linux and others
+- 0.5.x -> 1.0.x: no feature difference between linux and others; user define cache size
 - 0.4.x -> 0.5.x: Cache inside `Config` now behaves **totally** like a native cache. Changes will be saved as `Config` dropped automatically.
 - v0.3.x -> v0.4.x: Cache inside `Config` now behaves more like a native cache. Changes will be saved as `ConfigMut` dropped automatically.
 - v0.2.x -> v0.3.x: Now, multi-config-sources can be saved and loaded through `Config` in one go. But `add_xx_source`s are removed. By the way, one can defined their own sources by implementing `Source` trait while `NormalSource` `PersistSource` `SecretSource` are still provided.

@@ -18,7 +18,7 @@ struct SecretConfig {
 fn secret_test() {
     std::fs::remove_file(SecretConfig::path()).ok();
     {
-        let cfg = Config::default();
+        let cfg: Config<1> = Config::default();
         {
             let secret = cfg.get::<SecretConfig>();
             assert_eq!(secret.value, 0);
@@ -30,7 +30,7 @@ fn secret_test() {
         }
     }
     {
-        let cfg = Config::default();
+        let cfg: Config<1> = Config::default();
         let secret = cfg.get::<SecretConfig>();
         assert_eq!(secret.value, 42);
     }

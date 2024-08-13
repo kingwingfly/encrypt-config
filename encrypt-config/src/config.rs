@@ -4,15 +4,13 @@
 use rom_cache::cache::{CacheMut, CacheRef};
 use std::any::Any;
 
-type Cache = rom_cache::Cache<1, 8>;
-
 /// A struct that can be used to **cache** configuration values.
 /// This behaves like a native cache in CPU:
 /// 1. If cache hit, reading returns the cached value, while writing upgrades the cached value then set cache flag dirty.
 /// 2. If cache miss, reading loads the value from the source to cache, while writing saves the value to source then loads it to cache.
 /// 3. All caches values dirty will be written back when Config dropped.
 ///
-/// **At most 8** different types in all threads are safe to be managed
+/// **At most N** different types in all threads are safe to be managed
 /// due to the default cache capacity.
 /// And each type can be ref **up to 63** times or mut ref **up to 1** time at the same time.
 /// Or panic occurs with errors like `Busy` or `Locked`.
@@ -21,20 +19,20 @@ type Cache = rom_cache::Cache<1, 8>;
     feature = "secret",
     doc = "To avoid entering the password during testing, you can enable `mock` feature. This can always return the **same** Encrypter during **each** test."
 )]
-pub struct Config {
-    cache: Cache,
+pub struct Config<const N: usize> {
+    cache: rom_cache::Cache<1, N>,
 }
 
-impl Default for Config {
+impl<const N: usize> Default for Config<N> {
     /// Create an empty [`Config`] cache.
     fn default() -> Self {
         Self {
-            cache: Cache::default(),
+            cache: rom_cache::Cache::<1, N>::default(),
         }
     }
 }
 
-impl Config {
+impl<const N: usize> Config<N> {
     /// Create a new [`Config`] cache.
     pub fn new() -> Self {
         Self::default()
@@ -115,9 +113,9 @@ pub trait Cacheable<T> {
     /// Mutable reference retrieved from the cache.
     type Mut<'a>;
     /// Retrieve the immutable ref from the cache.
-    fn retrieve(cache: &Cache) -> Self::Ref<'_>;
+    fn retrieve<const N: usize>(cache: &rom_cache::Cache<1, N>) -> Self::Ref<'_>;
     /// Retrieve the mutable ref from the cache.
-    fn retrieve_mut(cache: &Cache) -> Self::Mut<'_>;
+    fn retrieve_mut<const N: usize>(cache: &rom_cache::Cache<1, N>) -> Self::Mut<'_>;
 }
 
 #[allow(private_bounds, private_interfaces)]
@@ -128,11 +126,11 @@ where
     type Ref<'a> = CfgRef<'a, T>;
     type Mut<'a> = CfgMut<'a, T>;
 
-    fn retrieve(cache: &Cache) -> Self::Ref<'_> {
+    fn retrieve<const N: usize>(cache: &rom_cache::Cache<1, N>) -> Self::Ref<'_> {
         cache.get::<T>().unwrap()
     }
 
-    fn retrieve_mut(cache: &Cache) -> Self::Mut<'_> {
+    fn retrieve_mut<const N: usize>(cache: &rom_cache::Cache<1, N>) -> Self::Mut<'_> {
         cache.get_mut::<T>().unwrap()
     }
 }
@@ -146,11 +144,11 @@ macro_rules! impl_cacheable {
         {
             type Ref<'a> = ($(<$t as Cacheable<()>>::Ref<'a>),+,);
             type Mut<'a> = ($(<$t as Cacheable<()>>::Mut<'a>),+,);
-            fn retrieve(cache: &Cache) -> Self::Ref<'_> {
+            fn retrieve<const N: usize>(cache: &rom_cache::Cache<1, N>) -> Self::Ref<'_> {
                 ($(<$t as Cacheable<()>>::retrieve(cache)),+,)
             }
 
-            fn retrieve_mut(cache: &Cache) -> Self::Mut<'_> {
+            fn retrieve_mut<const N: usize>(cache: &rom_cache::Cache<1, N>) -> Self::Mut<'_> {
                 ($(<$t as Cacheable<()>>::retrieve_mut(cache)),+,)
             }
         }

@@ -15,7 +15,7 @@ struct PersistConfig {
 fn persist_test() {
     std::fs::remove_file(PersistConfig::path()).ok();
     {
-        let cfg = Config::default();
+        let cfg: Config<1> = Config::default();
         {
             let persist = cfg.get::<PersistConfig>();
             assert_eq!(persist.value, 0);
@@ -27,7 +27,7 @@ fn persist_test() {
         }
     }
     {
-        let cfg = Config::default();
+        let cfg: Config<1> = Config::default();
         let persist = cfg.get::<PersistConfig>();
         assert_eq!(persist.value, 42);
     }

@@ -37,7 +37,7 @@ fn main() {
         std::fs::remove_file(file).ok();
     }
     {
-        let cfg = Config::default();
+        let cfg: Config<3> = Config::default();
         {
             let normal = cfg.get::<NormalConfig>();
             // default value
@@ -59,7 +59,7 @@ fn main() {
     }
     {
         // Assume this is a new config in the next start
-        let cfg = Config::default();
+        let cfg: Config<3> = Config::default();
         {
             // normal config will not be saved
             assert_eq!(cfg.get::<NormalConfig>().count, 0);
