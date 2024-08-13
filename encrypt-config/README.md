@@ -94,7 +94,7 @@ Moreover, as development progresses, a memory cache design is added for persiste
 This leads this crate actually behaving more like bevy_ecs's resource system (or dependencies injecion with only args retrieving implemented).
 The cache is released as an independent crate [rom_cache](https://crates.io/crates/rom_cache).
 
-The `Config` in this crate is a wrapper of `rom_cache::Cache`, only if the config is modified and marked dirty, it will be persisted to the storage.
+The `Config` in this crate is a wrapper of `rom_cache::Cache`, only if the config is modified and marked dirty will the data be persisted to the storage.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
