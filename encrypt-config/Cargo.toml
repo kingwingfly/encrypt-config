@@ -24,22 +24,22 @@ dirs = { version = "5.0.1", optional = true }
 rom_cache = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-keyring = { workspace = true, optional = true, features = ["platform-macos"] }
+keyring = { workspace = true, optional = true, features = ["apple-native"] }
 
 [target.'cfg(target_os = "ios")'.dependencies]
-keyring = { workspace = true, optional = true, features = ["platform-ios"] }
+keyring = { workspace = true, optional = true, features = ["apple-native"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
-keyring = { workspace = true, optional = true }
+keyring = { workspace = true, optional = true, features = ["linux-native"] }
 
 [target.'cfg(target_os = "freebsd")'.dependencies]
-keyring = { workspace = true, optional = true, features = ["platform-freebsd"] }
+keyring = { workspace = true, optional = true, features = ["linux-native"] }
 
 [target.'cfg(target_os = "openbsd")'.dependencies]
-keyring = { workspace = true, optional = true, features = ["platform-openbsd"] }
+keyring = { workspace = true, optional = true, features = ["linux-native"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
-keyring = { workspace = true, optional = true, features = ["platform-windows"] }
+keyring = { workspace = true, optional = true, features = ["windows-native"] }
 
 [features]
 default = []
@@ -55,5 +55,3 @@ persist = ["encrypt_config_derive?/persist"]
 derive = ["dep:encrypt_config_derive"]
 default_config_dir = ["dep:dirs", "encrypt_config_derive?/default_config_dir"]
 mock = []
-linux-secret-service = ["keyring?/linux-secret-service"]
-linux-keyutils = ["keyring?/linux-keyutils"]

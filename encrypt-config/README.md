@@ -61,11 +61,8 @@
 <!-- IMPORT -->
 ## Import
 ```toml
-[target.'cfg(target_os = "linux")'.dependencies]
-encrypt_config = { version = "0.5.0-alpha1", features = ["full", "linux-secret-service"] }
-
-[target.'cfg(not(target_os = "linux"))'.dependencies]
-encrypt_config = { version = "0.5.0-alpha1", features = ["full"] }
+[dependencies]
+encrypt_config = { version = "1.0.0", features = ["full"] }
 
 [profile.dev.package.num-bigint-dig]
 opt-level = 3
@@ -100,11 +97,6 @@ This crate also has some optional features:
 Moreover, as development progresses, a memory cache design is added for persistent data access speeding up.
 This leads this crate actually behaving more like bevy_ecs's resource system (or dependencies injecion with only args retrieving implemented).
 The cache is released as an independent crate [rom_cache](https://crates.io/crates/rom_cache).
-
-### Causion
-
-One of `linux-secret-service` and `linux-keyutils` features should be enabled on Linux, or a compile error will be raised.
-
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -194,7 +186,7 @@ _For more examples, please refer to the [tests](https://github.com/kingwingfly/e
 
 <!-- CHANGELOG -->
 ## Changelog
-
+- 0.5.x -> 1.0.x: no feature difference between linux and others
 - 0.4.x -> 0.5.x: Cache inside `Config` now behaves **totally** like a native cache. Changes will be saved as `Config` dropped automatically.
 - v0.3.x -> v0.4.x: Cache inside `Config` now behaves more like a native cache. Changes will be saved as `ConfigMut` dropped automatically.
 - v0.2.x -> v0.3.x: Now, multi-config-sources can be saved and loaded through `Config` in one go. But `add_xx_source`s are removed. By the way, one can defined their own sources by implementing `Source` trait while `NormalSource` `PersistSource` `SecretSource` are still provided.
