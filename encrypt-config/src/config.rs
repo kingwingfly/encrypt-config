@@ -6,13 +6,19 @@ use std::any::Any;
 
 /// A struct that can be used to **cache** configuration values.
 /// This behaves like a native cache in CPU:
-/// 1. If cache hit, reading returns the cached value, while writing upgrades the cached value then set cache flag dirty.
-/// 2. If cache miss, reading loads the value from the source to cache, while writing saves the value to source then loads it to cache.
-/// 3. All caches values dirty will be written back when Config dropped.
 ///
-/// **At most N** different types in all threads are safe to be managed due to the default cache capacity.
+/// `get`:
+/// 1. If cache hit, returns the cached value's ref.
+/// 2. If cache miss, loads the value from the source to cache (default as fallback), then returns the ref.
+///
+/// `get_mut`
+/// 1. If cache hit, returns the cached value's mut ref, dereferencing it will mark the value as dirty.
+/// 2. If cache miss, loads the value from the source to cache (default as fallback), then returns the mut ref.
+/// 3. All caches values dirty will be written back when Config dropped or cache line evicted.
+///
+/// **At most N** different config types are safe to be managed at the same time due to the cache capacity.
 /// And each type can be ref **up to 63** times or mut ref **up to 1** time at the same time.
-/// Or invalid borrow may happen.
+/// Or invalid borrow may happen (since the counter wraps around on overflow).
 #[cfg_attr(
     feature = "secret",
     doc = "To avoid entering the password during testing, you can enable `mock` feature. This can always return the **same** Encrypter during **each** test."
@@ -96,7 +102,7 @@ impl<const N: usize> Config<N> {
 pub type CfgRef<'a, T> = CacheRef<'a, T>;
 
 /// # Panic
-/// - If you already held a [`CfgMut`], [`Config::get()`] will panic.
+/// - If you already held a [`CfgRef`] or [`CfgMut`], [`Config::get_mut()`] will panic.
 pub type CfgMut<'a, T> = CacheMut<'a, T>;
 
 /// This trait is used to retrieve the config value from the cache.
