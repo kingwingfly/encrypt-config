@@ -68,6 +68,11 @@ encrypt_config = { version = "1.0", features = ["full"] }
 opt-level = 3
 ```
 
+# Caution
+On linux, the keys will expired or removed after reboot or long-term unused. So the rsa private key will be lost
+which leads this crate to be unable to decrypt the encrypted config file.
+
+
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
