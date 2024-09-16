@@ -70,8 +70,8 @@ opt-level = 3
 
 # Caution
 On linux, the keys will expired or removed after reboot or long-term unused. So the rsa private key will be lost
-which leads this crate to be unable to decrypt the encrypted config file.
-
+which leads this crate unable to decrypt the encrypted config file. So we recommend to easily use `PersistSource`
+instead of `SecretSource` on linux even other platforms, they are actually safe enough.
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
@@ -181,6 +181,9 @@ struct SecretConfig {
 }
 # }
 ```
+
+Surely, you can also easily use methods provided by `PersistSource` and `SecretSource`
+to load and save the config manually, instead of the complex `Config` cache.
 
 _For more examples, please refer to the [tests](https://github.com/kingwingfly/encrypt-config/tree/dev/tests), [Example](https://github.com/kingwingfly/encrypt-config/blob/dev/examples/example.rs) or [Documentation](https://docs.rs/encrypt_config)_
 
