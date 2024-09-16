@@ -14,7 +14,7 @@ use std::any::Any;
 /// `get_mut`
 /// 1. If cache hit, returns the cached value's mut ref, dereferencing it will mark the value as dirty.
 /// 2. If cache miss, loads the value from the source to cache (default as fallback), then returns the mut ref.
-/// 3. All caches values dirty will be written back when Config dropped or cache line evicted.
+/// 3. All cached values marked dirty will be written back when Config dropped or cache line evicted.
 ///
 /// **At most N** different config types are safe to be managed at the same time due to the cache capacity.
 /// And each type can be ref **up to 63** times or mut ref **up to 1** time at the same time.
