@@ -17,7 +17,7 @@ use std::any::Any;
 /// 3. All cached values marked dirty will be written back when Config dropped or cache line evicted.
 ///
 /// **At most N** different config types are safe to be managed at the same time due to the cache capacity.
-/// And each type can be ref **up to 63** times or mut ref **up to 1** time at the same time.
+/// And each type can be ref **up to (usize::MAX >> 2)** times or mut ref **up to 1** time at the same time.
 /// Or invalid borrow may happen (since the counter wraps around on overflow).
 #[cfg_attr(
     feature = "secret",
@@ -45,7 +45,7 @@ impl<const N: usize> Config<N> {
     /// Get an immutable ref ([`CfgRef`]) from the config.
     /// If the value was not valid, it would try loading from source, and fell back to the default value.
     ///
-    /// Caution: You can only get up to 63 immutable refs ([`CfgRef`]) of each type at the same time.
+    /// Caution: You can only get up to (usize::MAX >> 2) immutable refs ([`CfgRef`]) of each type at the same time.
     ///
     /// If the value was marked as writing, it would panic like `RefCell`.
     /// See [`CfgRef`] for more details.

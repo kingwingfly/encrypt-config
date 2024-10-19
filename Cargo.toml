@@ -15,7 +15,7 @@ documentation = "https://docs.rs/encrypt-config"
 encrypt_config = { path = "encrypt-config", default-features = false }
 encrypt_config_derive = { path = "encrypt-config-derive", default-features = false, version = "1.0.5" }
 keyring = { version = "3.0.5", default-features = false }
-rom_cache = { version = "0.0.10" }
+rom_cache = { version = "0.0.12" }
 
 [profile.dev.package.num-bigint-dig]
 opt-level = 3
