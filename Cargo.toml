@@ -3,7 +3,7 @@ members = ["encrypt-config", "encrypt-config-derive", "tests", "examples"]
 resolver = "2"
 
 [workspace.package]
-version = "2.0.0"
+version = "2.0.1"
 authors = ["Louis <836250617@qq.com>"]
 description = "A Rust crate to manage, persist and encrypt your configurations."
 license = "MIT"
@@ -14,7 +14,7 @@ rust-version = "1.86"
 
 [workspace.dependencies]
 encrypt_config = { path = "encrypt-config", default-features = false }
-encrypt_config_derive = { path = "encrypt-config-derive", default-features = false, version = "2.0.0" }
+encrypt_config_derive = { path = "encrypt-config-derive", default-features = false, version = "2.0.1" }
 keyring = { version = "3.6", default-features = false }
 rom_cache = { version = "0.1.1" }
 
