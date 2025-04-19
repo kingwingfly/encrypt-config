@@ -43,7 +43,7 @@ keyring = { workspace = true, optional = true, features = ["linux-native"] }
 keyring = { workspace = true, optional = true, features = ["windows-native"] }
 
 [features]
-default = []
+default = ["derive"]
 full = ["persist", "secret", "derive"]
 secret = [
     "dep:rsa",
