@@ -68,14 +68,6 @@ pub(crate) fn derive_persist_source(input: TokenStream) -> TokenStream {
             fn store(&self) -> ::std::io::Result<()> {
                 <Self as ::encrypt_config::PersistSource>::store(self)
             }
-
-            fn as_any(&self) -> &dyn ::std::any::Any {
-                self
-            }
-
-            fn as_any_mut(&mut self) -> &mut dyn ::std::any::Any {
-                self
-            }
         }
     };
 

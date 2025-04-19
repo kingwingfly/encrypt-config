@@ -10,7 +10,7 @@ struct NormalConfig {
 #[cfg_attr(feature = "default_config_dir", source(name = "persist_config.json"))]
 #[cfg_attr(
     not(feature = "default_config_dir"),
-    source(path = const_str::concat!(encrypt_config::TEST_OUT_DIR, "/persist_config.json"))
+    source(path = const_str::concat!(env!("OUT_DIR"), "/encrypt_config_cache", "/persist_config.json"))
 )]
 struct PersistConfig {
     name: String,
@@ -24,7 +24,7 @@ struct PersistConfig {
 )]
 #[cfg_attr(
     not(feature = "default_config_dir"),
-    source(path = const_str::concat!(encrypt_config::TEST_OUT_DIR, "/secret_config"), keyring_entry = "secret")
+    source(path = const_str::concat!(env!("OUT_DIR"), "/encrypt_config_cache", "/secret_config"), keyring_entry = "secret")
 )]
 struct SecretConfig {
     password: String,

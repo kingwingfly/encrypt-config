@@ -11,9 +11,6 @@ compile_error!("Feature `default_config_dir` only works with feature `persist` o
 #[cfg(all(not(feature = "secret"), feature = "mock"))]
 compile_error!("Feature `mock` is designed only for feature `secret` on.");
 
-/// The output directory for the generated files when testing.
-pub const TEST_OUT_DIR: &str = concat!(env!("OUT_DIR"), "/encrypt_config_cache");
-
 pub mod config;
 #[cfg(feature = "secret")]
 pub mod encrypt_utils;

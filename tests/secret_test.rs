@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 )]
 #[cfg_attr(
     not(feature = "default_config_dir"),
-    source(path = const_str::concat!(encrypt_config::TEST_OUT_DIR, "/secret_config"), keyring_entry = "secret")
+    source(path = const_str::concat!(env!("OUT_DIR"), "/encrypt_config_cache", "/secret_config"), keyring_entry = "secret")
 )]
 struct SecretConfig {
     value: i32,

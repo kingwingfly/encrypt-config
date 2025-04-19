@@ -192,6 +192,7 @@ _For more examples, please refer to the [tests](https://github.com/kingwingfly/e
 
 <!-- CHANGELOG -->
 ## Changelog
+- 1.0.x -> 2.0.0: as `trait_upcasting` stablized, MSRV is bumped to 1.86
 - 0.5.x -> 1.0.x: no feature difference between linux and others; user define cache size
 - 0.4.x -> 0.5.x: Cache inside `Config` now behaves **totally** like a native cache. Changes will be saved as `Config` dropped automatically.
 - v0.3.x -> v0.4.x: Cache inside `Config` now behaves more like a native cache. Changes will be saved as `ConfigMut` dropped automatically.
