@@ -69,6 +69,15 @@ opt-level = 3
 ```
 
 # Caution
+
+This project is no longer maintained for the following reasons:
+- I'm not familar with Rust when publishing this crate, and now I think it's not a good idea to import such a dependency just for encrypting a longer secret. Peaple can easily and should implement the same function with `Drop` trait and `arc_swap`, `aws_lc_rs`, `zeroize`, `keyring` crate.
+- `keyring` updated, and I do not want to keep on it now. (For reason above, it's unnecessary and takes time)
+- people can implement the same function with AI fast and even better nowadays.
+
+Above all, this project is actually dangerous to use. And I have to say, it even does not `zeroize` the memory storing secret!  
+
+---
 On linux, the keys will expired or removed after reboot or long-term unused. So the rsa private key will be lost
 which leads this crate unable to decrypt the encrypted config file. So we recommend to easily use `PersistSource`
 instead of `SecretSource` on linux even other platforms, they are actually safe enough.
